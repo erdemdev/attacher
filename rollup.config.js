@@ -17,14 +17,7 @@ export default {
   watch: {
     exclude: 'node_modules/**'
   },
-  plugins: [ 
-    MODE == 'dev' ? liveServer({
-      port: 1234,
-      root: "test",
-      file: "demo.html",
-      open: true,
-      wait: 100
-    }) : '',
+  plugins: [
     resolve(),
     commonjs(),
     babel({
@@ -38,6 +31,13 @@ export default {
       ],
       minimize: MODE == 'prod',
       sourceMap: MODE != 'prod'
-    })
+    }),
+    MODE == 'dev' ? liveServer({
+      port: 1234,
+      root: "test",
+      file: "demo.html",
+      open: true,
+      wait: 100
+    }) : ''
   ]
 };

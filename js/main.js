@@ -14,7 +14,8 @@ export default class Attacher {
    * @param {Element} target element to attach reference to.
    * @param {Object} options
    */
-  constructor(reference, target, {
+  constructor(reference, {
+    target = undefined,
     debug = false,
     offset = {x: 10, y: 10},
   }) {
@@ -22,12 +23,36 @@ export default class Attacher {
     this.target = target;
     this.debug = debug;
     this.offset = offset;
-    if (debug) console.log(this, 'Attacher component created.');
+    if (debug) console.log(this, 'attacher component created.');
+    this.init();
+    if (target) this.bind(target);
   }
 
   /**
-   * Binds reference to target.
+   * Set up reference element
    */
-  bind() {
+  init() {
+    this.reference.style.position = 'absolute';
+    this.reference.style.transition = '2s';
+  }
+
+  /**
+   * Binds reference element to target element.
+   * @param {Element} target could be a new target element.
+   */
+  bind(target) {
+    const newPos = {
+      x: target.offsetLeft - this.reference.offsetLeft,
+      y: target.offsetTop - this.reference.offsetTop,
+    };
+    if (this.debug) console.log(newPos, 'is new position of reference.');
+    this.reference.style.transform = `translate(${newPos.x}px, ${newPos.y}px)`;
+  }
+
+  /**
+   * Unbinds reference element from target element.
+   */
+  unbind() {
+    this.reference.style.transform = '';
   }
 };

@@ -36,8 +36,10 @@ function () {
    * @param {Element} target element to attach reference to.
    * @param {Object} options
    */
-  function Attacher(reference, target, _ref) {
-    var _ref$debug = _ref.debug,
+  function Attacher(reference, _ref) {
+    var _ref$target = _ref.target,
+        target = _ref$target === void 0 ? undefined : _ref$target,
+        _ref$debug = _ref.debug,
         debug = _ref$debug === void 0 ? false : _ref$debug,
         _ref$offset = _ref.offset,
         offset = _ref$offset === void 0 ? {
@@ -51,16 +53,45 @@ function () {
     this.target = target;
     this.debug = debug;
     this.offset = offset;
-    if (debug) console.log(this, 'Attacher component created.');
+    if (debug) console.log(this, 'attacher component created.');
+    this.init();
+    if (target) this.bind(target);
   }
   /**
-   * Binds reference to target.
+   * Set up reference element
    */
 
 
   _createClass(Attacher, [{
+    key: "init",
+    value: function init() {
+      this.reference.style.position = 'absolute';
+      this.reference.style.transition = '2s';
+    }
+    /**
+     * Binds reference element to target element.
+     * @param {Element} target could be a new target element.
+     */
+
+  }, {
     key: "bind",
-    value: function bind() {}
+    value: function bind(target) {
+      var newPos = {
+        x: target.offsetLeft - this.reference.offsetLeft,
+        y: target.offsetTop - this.reference.offsetTop
+      };
+      if (this.debug) console.log(newPos, 'is new position of reference.');
+      this.reference.style.transform = "translate(".concat(newPos.x, "px, ").concat(newPos.y, "px)");
+    }
+    /**
+     * Unbinds reference element from target element.
+     */
+
+  }, {
+    key: "unbind",
+    value: function unbind() {
+      this.reference.style.transform = '';
+    }
   }]);
 
   return Attacher;
@@ -69,23 +100,21 @@ function () {
 /**
  * Import Styles
  */
-
 var reference = document.querySelector('.reference');
 var targets = document.querySelectorAll('.target');
+var attacher = attacher = new Attacher(reference, {
+  debug: true
+});
+reference.addEventListener('click', function (e) {
+  e.preventDefault();
+  attacher.unbind();
+});
 var i = 0;
 
 for (i; i < targets.length; i++) {
   var target = targets[i];
-  /* let attacher = null; */
-
-  new Attacher(reference, target, {
-    debug: true
-  });
-  /* target.addEventListener('click', (e) => {
+  target.addEventListener('click', function (e) {
     e.preventDefault();
-    if (attacher) return;
-    attacher = new Attacher(reference, target, {
-      debug: true,
-    });
-  }); */
+    attacher.bind(e.target);
+  });
 }
