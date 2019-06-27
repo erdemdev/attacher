@@ -36,25 +36,31 @@ function () {
    * @arg {Object} options of attacher.
    * @prop {Element} target element.
    * @prop {Boolean} debug mode.
-   * @prop {String} position of reference to target.
+   * @prop {String} position ("top", "bottom", "center") of target.
    */
   function Attacher(reference, _ref) {
     var _ref$target = _ref.target,
         target = _ref$target === void 0 ? undefined : _ref$target,
         _ref$debug = _ref.debug,
         debug = _ref$debug === void 0 ? false : _ref$debug,
-        _ref$position = _ref.position,
-        position = _ref$position === void 0 ? 'top' : _ref$position,
+        _ref$posPriority = _ref.posPriority,
+        posPriority = _ref$posPriority === void 0 ? 'top' : _ref$posPriority,
         _ref$transition = _ref.transition,
-        transition = _ref$transition === void 0 ? 2 : _ref$transition;
+        transition = _ref$transition === void 0 ? 2 : _ref$transition,
+        _ref$offset = _ref.offset,
+        offset = _ref$offset === void 0 ? {
+      x: 0,
+      y: 10
+    } : _ref$offset;
 
     _classCallCheck(this, Attacher);
 
     this.reference = reference;
     this.target = target;
     this.debug = debug;
-    this.position = position;
+    this.posPriority = posPriority;
     this.transition = transition;
+    this.offset = offset;
     this.init();
     if (target) this.bind(target);
   }
@@ -130,16 +136,94 @@ function () {
         return;
       }
 
-      var targetPosX = this.target.offsetLeft + this.target.offsetWidth / 2;
-      var targetPosY = this.target.offsetTop + this.target.offsetHeight / 2;
-      var referencePosX = this.reference.offsetLeft + this.reference.offsetWidth / 2;
-      var referencePosY = this.reference.offsetTop + this.reference.offsetHeight / 2;
-      var newPos = {
-        x: targetPosX - referencePosX,
-        y: targetPosY - referencePosY
+      this.setPosition(this.getPosition());
+    }
+    /**
+     * Decide new position according to window size and priority.
+     * @return {Object} new position of target element.
+     */
+
+  }, {
+    key: "getPosition",
+    value: function getPosition() {
+      var position = {
+        x: this.getDistanceX(),
+        y: this.getDistanceY()
       };
-      if (this.debug) console.log(newPos, 'is new position of reference.');
-      this.reference.style.transform = "translate(".concat(newPos.x, "px, ").concat(newPos.y, "px)");
+      if (this.debug) console.log(position, 'is new position of reference.');
+      return position;
+    }
+    /**
+     * Set position of reference element.
+     * @arg {Object} position of reference element.
+     */
+
+  }, {
+    key: "setPosition",
+    value: function setPosition(position) {
+      this.reference.style.transform = "translate(".concat(position.x, "px, ").concat(position.y, "px)");
+    }
+    /**
+     * check if X axis is out of border.
+     * @return {Float} X distance between reference and target.
+     */
+
+  }, {
+    key: "getDistanceX",
+    value: function getDistanceX() {
+      var targetPosX = this.target.offsetLeft + this.target.offsetWidth / 2;
+      var refCenterDistance = this.reference.offsetWidth / 2;
+      var referencePosX = this.reference.offsetLeft + refCenterDistance;
+      /**
+       * Check is out of Boundary.
+       */
+
+      var bodyWidth = document.body.clientWidth;
+      var distanceX = targetPosX - referencePosX; // TODO if bleeds position to clicked point.
+
+      if (targetPosX + refCenterDistance + 20 > bodyWidth) {
+        distanceX = this.reference.offsetLeft + this.reference.offsetWidth;
+        distanceX = bodyWidth - distanceX - 20;
+        if (this.debug) console.warn('Element bleeds from right.');
+      }
+
+      return distanceX;
+    }
+    /**
+     * check if Y axis is out of border.
+     * @arg {String} posPriority position priority.
+     * @return {Float} Y distance between reference and target.
+     */
+
+  }, {
+    key: "getDistanceY",
+    value: function getDistanceY() {
+      var posPriority = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.posPriority;
+      var targetPosY = 0;
+      var referencePosY = 0; // TODO: ADD WINDOW SIZE PRIORITY
+
+      /**
+       * Select position according to priority.
+       */
+
+      switch (posPriority) {
+        case 'center':
+          targetPosY = this.target.offsetTop + this.target.offsetHeight / 2;
+          referencePosY = this.reference.offsetTop + this.reference.offsetHeight / 2;
+          break;
+
+        case 'top':
+          targetPosY = this.target.offsetTop;
+          referencePosY = this.reference.offsetTop + this.reference.offsetHeight + this.offset.y;
+          break;
+
+        case 'bottom':
+          targetPosY = this.target.offsetTop + this.target.offsetHeight + this.offset.y;
+          referencePosY = this.reference.offsetTop;
+          break;
+      }
+
+      return targetPosY - referencePosY;
     }
   }]);
 
@@ -165,5 +249,6 @@ for (i; i < targets.length; i++) {
   target.addEventListener('click', function (e) {
     e.preventDefault();
     attacher.bind(e.target);
+    console.log(e);
   });
 }

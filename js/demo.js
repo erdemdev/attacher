@@ -26,5 +26,6 @@ let i = 0; for (i; i < targets.length; i++) {
   target.addEventListener('click', (e) => {
     e.preventDefault();
     attacher.bind(e.target);
+    console.log(e);
   });
 }
