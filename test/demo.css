@@ -1,4 +1,5 @@
 body {
+  padding: 1rem;
   background-color: #ff9205;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif; }
 
@@ -11,23 +12,25 @@ body {
   border: 5px solid white;
   display: -webkit-box;
   display: flex;
-  box-shadow: 0px 10px 25px -15px black; }
+  box-shadow: 0px 10px 25px -15px black;
+  cursor: pointer; }
   .target__board h2 {
     align-self: center;
     color: white;
     text-align: center;
     width: 100%; }
 
-.ref {
+.reference {
   background-color: white;
   width: 200px;
   height: 100px;
   border-radius: 5px;
-  border: 5px solid black;
+  border: 5px solid #4e4e4e;
   display: -webkit-box;
   display: flex;
   box-shadow: 0px 10px 25px -15px black; }
-  .ref h2 {
+  .reference h2 {
+    color: #4e4e4e;
     align-self: center;
     text-align: center;
     width: 100%; }

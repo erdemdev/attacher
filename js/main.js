@@ -1,5 +1,5 @@
 /**
- * Module Styles
+ * Attacher Styles
  */
 import '../sass/main.scss';
 
@@ -8,16 +8,26 @@ import '../sass/main.scss';
  */
 export default class Attacher {
   /**
-   * Set up Attacher properties.
+   * Pass arguments to class properties.
+   * @constructor
+   * @param {Element} reference element.
+   * @param {Element} target element to attach reference to.
+   * @param {Object} options
    */
-  constructor() {
+  constructor(reference, target, {
+    debug = false,
+    offset = {x: 10, y: 10},
+  }) {
+    this.reference = reference;
+    this.target = target;
+    this.debug = debug;
+    this.offset = offset;
+    if (debug) console.log(this, 'Attacher component created.');
   }
 
   /**
-   * Attacher binds reference element to target element.
-   * @param {element} reference
-   * @param {element} target
+   * Binds reference to target.
    */
-  bind(reference, target) {
+  bind() {
   }
 };

@@ -1,13 +1,16 @@
 $shadow: 0px 10px 25px -15px black;
+$red: rgb(224, 24, 24);
+$black: rgb(78, 78, 78);
 
 body {
+  padding: 1rem;
   background-color: rgb(255, 146, 5);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
 }
 
 .target {
   &__board {
-    background-color: rgb(224, 24, 24);
+    background-color: $red;
     width: 100px;
     height: 100px;
     margin: 10rem auto;
@@ -15,6 +18,7 @@ body {
     border: 5px solid white;
     display: flex;
     box-shadow: $shadow;
+    cursor: pointer;
   
     h2 {
       align-self: center;
@@ -25,16 +29,17 @@ body {
   }
 }
 
-.ref {
+.reference {
   background-color: rgb(255, 255, 255);
   width: 200px;
   height: 100px;
   border-radius: 5px;
-  border: 5px solid black;
+  border: 5px solid $black;
   display: flex;
   box-shadow: $shadow;
 
   h2 {
+    color: $black;
     align-self: center;
     text-align: center;
     width: 100%;

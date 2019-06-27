@@ -30,21 +30,37 @@ var Attacher =
 /*#__PURE__*/
 function () {
   /**
-   * Set up Attacher properties.
+   * Pass arguments to class properties.
+   * @constructor
+   * @param {Element} reference element.
+   * @param {Element} target element to attach reference to.
+   * @param {Object} options
    */
-  function Attacher() {
+  function Attacher(reference, target, _ref) {
+    var _ref$debug = _ref.debug,
+        debug = _ref$debug === void 0 ? false : _ref$debug,
+        _ref$offset = _ref.offset,
+        offset = _ref$offset === void 0 ? {
+      x: 10,
+      y: 10
+    } : _ref$offset;
+
     _classCallCheck(this, Attacher);
+
+    this.reference = reference;
+    this.target = target;
+    this.debug = debug;
+    this.offset = offset;
+    if (debug) console.log(this, 'Attacher component created.');
   }
   /**
-   * Attacher binds reference element to target element.
-   * @param {element} reference
-   * @param {element} target
+   * Binds reference to target.
    */
 
 
   _createClass(Attacher, [{
     key: "bind",
-    value: function bind(reference, target) {}
+    value: function bind() {}
   }]);
 
   return Attacher;
@@ -53,5 +69,23 @@ function () {
 /**
  * Import Styles
  */
-var sample = new Attacher();
-console.log(sample);
+
+var reference = document.querySelector('.reference');
+var targets = document.querySelectorAll('.target');
+var i = 0;
+
+for (i; i < targets.length; i++) {
+  var target = targets[i];
+  /* let attacher = null; */
+
+  new Attacher(reference, target, {
+    debug: true
+  });
+  /* target.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (attacher) return;
+    attacher = new Attacher(reference, target, {
+      debug: true,
+    });
+  }); */
+}

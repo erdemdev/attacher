@@ -3,7 +3,7 @@ import commonjs from 'rollup-plugin-commonjs';
 import babel from 'rollup-plugin-babel';
 import liveServer from 'rollup-plugin-live-server';
 import { uglify } from "rollup-plugin-uglify";
-import postcss from 'rollup-plugin-postcss'
+import postcss from 'rollup-plugin-postcss';
 import autoprefixer from 'autoprefixer';
 
 const MODE = process.env.BUILDMODE;
