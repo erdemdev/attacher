@@ -44,7 +44,9 @@ function () {
         _ref$debug = _ref.debug,
         debug = _ref$debug === void 0 ? false : _ref$debug,
         _ref$position = _ref.position,
-        position = _ref$position === void 0 ? 'top' : _ref$position;
+        position = _ref$position === void 0 ? 'top' : _ref$position,
+        _ref$transition = _ref.transition,
+        transition = _ref$transition === void 0 ? 2 : _ref$transition;
 
     _classCallCheck(this, Attacher);
 
@@ -52,22 +54,37 @@ function () {
     this.target = target;
     this.debug = debug;
     this.position = position;
-    if (debug) console.log(this, 'attacher component created.');
+    this.transition = transition;
     this.init();
     if (target) this.bind(target);
   }
   /**
-   * Set up reference element
+   * Set up reference element styles.
+   * Listen window resize event to refresh attacher.
    */
 
 
   _createClass(Attacher, [{
     key: "init",
     value: function init() {
+      var _this = this;
+
       this.reference.style.position = 'absolute';
       this.reference.style.left = 0;
       this.reference.style.bottom = 0;
-      if (this.debug) this.reference.style.transition = '2s';
+      window.addEventListener('resize', function () {
+        _this.reference.style.display = 'none';
+        setTimeout(function () {
+          _this.reference.style.display = '';
+
+          _this.refresh();
+        }, 10);
+      });
+
+      if (this.debug) {
+        console.log('attacher event listener added.');
+        console.log('attacher component created.', this);
+      }
     }
     /**
      * Binds reference element to target element.
@@ -77,8 +94,13 @@ function () {
   }, {
     key: "bind",
     value: function bind(target) {
+      var _this2 = this;
+
       this.target = target;
       this.refresh();
+      setTimeout(function () {
+        _this2.reference.style.transition = "".concat(_this2.transition, "s");
+      }, 10);
       if (this.debug) console.log("Attacher bind method fired. ", this);
     }
     /**
@@ -88,6 +110,7 @@ function () {
   }, {
     key: "unbind",
     value: function unbind() {
+      this.reference.style.transition = '';
       this.reference.style.transform = '';
       this.target = undefined;
       if (this.debug) console.log("Attacher unbind method fired. ", this);
@@ -134,13 +157,6 @@ var attacher = attacher = new Attacher(reference, {
 reference.addEventListener('click', function (e) {
   e.preventDefault();
   attacher.unbind();
-});
-window.addEventListener('resize', function () {
-  document.body.style.display = 'none';
-  setTimeout(function () {
-    document.body.style.display = '';
-    attacher.refresh();
-  }, 50);
 });
 var i = 0;
 

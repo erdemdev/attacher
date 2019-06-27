@@ -20,14 +20,6 @@ reference.addEventListener('click', (e) => {
   attacher.unbind();
 });
 
-window.addEventListener('resize', () => {
-  document.body.style.display = 'none';
-  setTimeout(() => {
-    document.body.style.display = '';
-    attacher.refresh();
-  }, 50);
-});
-
 let i = 0; for (i; i < targets.length; i++) {
   const target = targets[i];
 

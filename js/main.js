@@ -20,24 +20,36 @@ export default class Attacher {
     target = undefined,
     debug = false,
     position = 'top',
+    transition = 2,
   }) {
     this.reference = reference;
     this.target = target;
     this.debug = debug;
     this.position = position;
-    if (debug) console.log(this, 'attacher component created.');
+    this.transition = transition;
     this.init();
     if (target) this.bind(target);
   }
 
   /**
-   * Set up reference element
+   * Set up reference element styles.
+   * Listen window resize event to refresh attacher.
    */
   init() {
     this.reference.style.position = 'absolute';
     this.reference.style.left = 0;
     this.reference.style.bottom = 0;
-    if (this.debug) this.reference.style.transition = '2s';
+    window.addEventListener('resize', () => {
+      this.reference.style.display = 'none';
+      setTimeout(() => {
+        this.reference.style.display = '';
+        this.refresh();
+      }, 10);
+    });
+    if (this.debug) {
+      console.log('attacher event listener added.');
+      console.log('attacher component created.', this);
+    }
   }
 
   /**
@@ -47,6 +59,9 @@ export default class Attacher {
   bind(target) {
     this.target = target;
     this.refresh();
+    setTimeout(() => {
+      this.reference.style.transition = `${this.transition}s`;
+    }, 10);
     if (this.debug) console.log(`Attacher bind method fired. `, this);
   }
 
@@ -54,6 +69,7 @@ export default class Attacher {
    * Unbinds reference element from target element.
    */
   unbind() {
+    this.reference.style.transition = '';
     this.reference.style.transform = '';
     this.target = undefined;
     if (this.debug) console.log(`Attacher unbind method fired. `, this);
