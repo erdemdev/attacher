@@ -24,6 +24,7 @@ function _createClass(Constructor, protoProps, staticProps) {
 
 /**
  * Base Attacher Class
+ * TODO WATCH BLEEDING Y REALTIME.
  */
 
 var Attacher =
@@ -49,7 +50,7 @@ function () {
         _ref$posPriority = _ref.posPriority,
         posPriority = _ref$posPriority === void 0 ? 'top' : _ref$posPriority,
         _ref$transition = _ref.transition,
-        transition = _ref$transition === void 0 ? 2 : _ref$transition,
+        transition = _ref$transition === void 0 ? 1 : _ref$transition,
         _ref$offset = _ref.offset,
         offset = _ref$offset === void 0 ? {
       x: 0,
@@ -58,7 +59,7 @@ function () {
         _ref$bPadding = _ref.bPadding,
         bPadding = _ref$bPadding === void 0 ? {
       x: 20,
-      y: 20
+      y: 50
     } : _ref$bPadding;
 
     _classCallCheck(this, Attacher);
@@ -203,20 +204,41 @@ function () {
       return distanceX;
     }
     /**
-     * check if Y axis is out of border.
-     * @arg {String} posPriority position priority.
+     * Calculate Y distance first.
+     * Check if Y distance is out of boundary.
+     * If out of boundary. Recalculate Y distance.
      * @return {Float} Y distance between reference and target.
      */
 
   }, {
     key: "getDistanceY",
     value: function getDistanceY() {
+      var distanceY = this.calculateDistanceY();
+
+      switch (this.checkBoundaryY(distanceY)) {
+        case 'top':
+          distanceY = this.calculateDistanceY('bottom');
+          break;
+
+        case 'bottom':
+          distanceY = this.calculateDistanceY('top');
+          break;
+      }
+
+      return distanceY;
+    }
+    /**
+    * Calculate position priority of reference element.
+    * @arg {String} posPriority position priority.
+    * @return {Float} Y distance between reference and target.
+     */
+
+  }, {
+    key: "calculateDistanceY",
+    value: function calculateDistanceY() {
       var posPriority = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.posPriority;
       var targetPosY = 0;
       var referencePosY = 0;
-      /**
-       * Select position according to priority.
-       */
 
       switch (posPriority) {
         case 'center':
@@ -235,17 +257,34 @@ function () {
           break;
       }
 
-      var distanceY = targetPosY - referencePosY;
-      this.calculateBoundaryY(distanceY);
-      return distanceY;
+      return targetPosY - referencePosY;
     }
     /**
-     * Check if reference is out of boundary in Y axis.
+     * Check if reference is out-of-bounds in Y axis.
+     * @return {Boolean | String} the bleeding position of reference.
+     * false for no bleeding.
      */
 
   }, {
-    key: "calculateBoundaryY",
-    value: function calculateBoundaryY() {//
+    key: "checkBoundaryY",
+    value: function checkBoundaryY() {
+      var topBoundary = document.body.scrollTop;
+      var refTopBoundary = this.target.offsetTop - this.reference.offsetHeight - this.offset.y - this.bPadding.y;
+
+      if (topBoundary >= refTopBoundary) {
+        console.warn('Reference bleeds from top.');
+        return 'top';
+      }
+
+      var bottomBoundary = topBoundary + document.body.clientHeight;
+      var refBottomBoundary = this.target.offsetTop + this.target.offsetHeight + this.reference.offsetHeight + this.offset.y + this.bPadding.y;
+
+      if (refBottomBoundary > bottomBoundary) {
+        console.warn('Reference bleeds from bottom.');
+        return 'bottom';
+      }
+
+      return false;
     }
   }]);
 

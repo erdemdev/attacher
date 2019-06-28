@@ -5,6 +5,7 @@ import '../sass/main.scss';
 
 /**
  * Base Attacher Class
+ * TODO WATCH BLEEDING Y REALTIME.
  */
 export default class Attacher {
   /**
@@ -22,10 +23,10 @@ export default class Attacher {
   constructor(reference, {
     target = undefined,
     debug = false,
-    posPriority = 'top', // TODO add position priority support.
-    transition = 2,
+    posPriority = 'top',
+    transition = 1,
     offset = {x: 0, y: 10},
-    bPadding = {x: 20, y: 20},
+    bPadding = {x: 20, y: 50},
   }) {
     this.reference = reference;
     this.target = target;
@@ -143,16 +144,32 @@ export default class Attacher {
   }
 
   /**
-   * check if Y axis is out of border.
-   * @arg {String} posPriority position priority.
+   * Calculate Y distance first.
+   * Check if Y distance is out of boundary.
+   * If out of boundary. Recalculate Y distance.
    * @return {Float} Y distance between reference and target.
    */
-  getDistanceY(posPriority = this.posPriority) {
+  getDistanceY() {
+    let distanceY = this.calculateDistanceY();
+    switch (this.checkBoundaryY(distanceY)) {
+      case 'top':
+        distanceY = this.calculateDistanceY('bottom');
+        break;
+      case 'bottom':
+        distanceY = this.calculateDistanceY('top');
+        break;
+    }
+    return distanceY;
+  }
+
+  /**
+  * Calculate position priority of reference element.
+  * @arg {String} posPriority position priority.
+  * @return {Float} Y distance between reference and target.
+   */
+  calculateDistanceY(posPriority = this.posPriority) {
     let targetPosY = 0;
     let referencePosY = 0;
-    /**
-     * Select position according to priority.
-     */
     switch (posPriority) {
       case 'center':
         targetPosY =
@@ -171,15 +188,30 @@ export default class Attacher {
         referencePosY = this.reference.offsetTop;
         break;
     }
-    const distanceY = targetPosY - referencePosY;
-    this.calculateBoundaryY(distanceY);
-    return distanceY;
+    return targetPosY - referencePosY;
   }
 
   /**
-   * Check if reference is out of boundary in Y axis.
+   * Check if reference is out-of-bounds in Y axis.
+   * @return {Boolean | String} the bleeding position of reference.
+   * false for no bleeding.
    */
-  calculateBoundaryY() {
-    //
+  checkBoundaryY() {
+    const topBoundary = document.body.scrollTop;
+    const refTopBoundary = this.target.offsetTop -
+    this.reference.offsetHeight - this.offset.y - this.bPadding.y;
+    if (topBoundary >= refTopBoundary ) {
+      console.warn('Reference bleeds from top.');
+      return 'top';
+    }
+    const bottomBoundary = topBoundary + document.body.clientHeight;
+    const refBottomBoundary = this.target.offsetTop +
+    this.target.offsetHeight + this.reference.offsetHeight +
+    this.offset.y + this.bPadding.y;
+    if (refBottomBoundary > bottomBoundary) {
+      console.warn('Reference bleeds from bottom.');
+      return 'bottom';
+    }
+    return false;
   }
 };
