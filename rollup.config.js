@@ -35,7 +35,7 @@ export default {
     MODE == 'dev' ? liveServer({
       port: 1234,
       root: "test",
-      file: "demo.html",
+      file: "index.html",
       open: true,
       wait: 100
     }) : ''
