@@ -77,6 +77,7 @@ function () {
   /**
    * Set up reference element styles.
    * Listen window resize event to refresh attacher.
+   * Listen document scroll event to recalculate reference position.
    */
 
 
@@ -272,7 +273,7 @@ function () {
       var refTopBoundary = this.target.offsetTop - this.reference.offsetHeight - this.offset.y - this.bPadding.y;
 
       if (topBoundary >= refTopBoundary) {
-        console.warn('Reference bleeds from top.');
+        if (this.debug) console.warn('Reference bleeds from top.');
         return 'top';
       }
 
@@ -280,10 +281,11 @@ function () {
       var refBottomBoundary = this.target.offsetTop + this.target.offsetHeight + this.reference.offsetHeight + this.offset.y + this.bPadding.y;
 
       if (refBottomBoundary > bottomBoundary) {
-        console.warn('Reference bleeds from bottom.');
+        if (this.debug) console.warn('Reference bleeds from bottom.');
         return 'bottom';
       }
 
+      if (this.debug) console.warn('No bleeding detected.');
       return false;
     }
   }]);
