@@ -12,6 +12,7 @@ const reference = document.querySelector('.reference');
 const targets = document.querySelectorAll('.target');
 
 let attacher = attacher = new Attacher(reference, {
+  target: targets[0],
   debug: true,
 });
 

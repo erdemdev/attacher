@@ -4,8 +4,7 @@
 import '../sass/main.scss';
 
 /**
- * Base Attacher Class
- * TODO WATCH BLEEDING Y REALTIME.
+ * @class Attacher
  */
 export default class Attacher {
   /**
@@ -19,6 +18,7 @@ export default class Attacher {
    * @prop {Float} transition seconds.
    * @prop {Object} offset of reference to target.
    * @prop {Object} bPadding padding of boundary.
+   * @prop {Float} refreshSeconds of attacher.
    */
   constructor(reference, {
     target = undefined,
@@ -27,6 +27,7 @@ export default class Attacher {
     transition = 1,
     offset = {x: 0, y: 10},
     bPadding = {x: 20, y: 50},
+    refreshSeconds = .2,
   }) {
     this.reference = reference;
     this.target = target;
@@ -35,6 +36,9 @@ export default class Attacher {
     this.transition = transition;
     this.offset = offset;
     this.bPadding = bPadding;
+    this.forcedPosPriority = false;
+    this.refreshTimer = null;
+    this.refreshSeconds = refreshSeconds;
     this.init();
     if (target) this.bind(target);
   }
@@ -46,6 +50,7 @@ export default class Attacher {
    */
   init() {
     this.reference.style.position = 'absolute';
+    this.reference.style.zIndex = 1;
     this.reference.style.left = 0;
     this.reference.style.bottom = 0;
     window.addEventListener('resize', () => {
@@ -71,6 +76,7 @@ export default class Attacher {
     setTimeout(() => {
       this.reference.style.transition = `${this.transition}s`;
     }, 10);
+    this.startWatch();
     if (this.debug) console.log(`Attacher bind method fired. `, this);
   }
 
@@ -81,6 +87,7 @@ export default class Attacher {
     this.reference.style.transition = '';
     this.reference.style.transform = '';
     this.target = undefined;
+    this.stopWatch();
     if (this.debug) console.log(`Attacher unbind method fired. `, this);
   }
 
@@ -95,6 +102,30 @@ export default class Attacher {
       return;
     }
     this.setPosition(this.getPosition());
+  }
+
+  /**
+   * Listen document scroll change.
+   */
+  startWatch() {
+    document.addEventListener('scroll', this.eventlistener = (e) => {
+      if (this.forcedPosPriority == this.checkBoundaryY()) return;
+      if (this.debug) console.warn('New bleeding detected. Refreshing...');
+      clearTimeout(this.refreshTimer);
+      this.refreshTimer = setTimeout(() => {
+        this.refresh();
+        if (this.debug) console.warn('Refreshed.');
+      }, this.refreshSeconds * 1000);
+    }, {passive: true});
+    if (this.debug) console.warn('attacher started watching.');
+  }
+
+  /**
+   * Stop listening document scroll change
+   */
+  stopWatch() {
+    document.removeEventListener('scroll', this.eventlistener);
+    if (this.debug) console.warn('attacher stopped watching.');
   }
 
   /**
@@ -203,6 +234,7 @@ export default class Attacher {
     this.reference.offsetHeight - this.offset.y - this.bPadding.y;
     if (topBoundary >= refTopBoundary ) {
       if (this.debug) console.warn('Reference bleeds from top.');
+      this.forcedPosPriority = 'bottom';
       return 'top';
     }
     const bottomBoundary = topBoundary + document.body.clientHeight;
@@ -211,9 +243,11 @@ export default class Attacher {
     this.offset.y + this.bPadding.y;
     if (refBottomBoundary > bottomBoundary) {
       if (this.debug) console.warn('Reference bleeds from bottom.');
+      this.forcedPosPriority = 'top';
       return 'bottom';
     }
     if (this.debug) console.warn('No bleeding detected.');
+    this.forcedPosPriority = false;
     return false;
   }
 };

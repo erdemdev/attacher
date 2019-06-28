@@ -23,8 +23,7 @@ function _createClass(Constructor, protoProps, staticProps) {
 }
 
 /**
- * Base Attacher Class
- * TODO WATCH BLEEDING Y REALTIME.
+ * @class Attacher
  */
 
 var Attacher =
@@ -41,6 +40,7 @@ function () {
    * @prop {Float} transition seconds.
    * @prop {Object} offset of reference to target.
    * @prop {Object} bPadding padding of boundary.
+   * @prop {Float} refreshSeconds of attacher.
    */
   function Attacher(reference, _ref) {
     var _ref$target = _ref.target,
@@ -60,7 +60,9 @@ function () {
         bPadding = _ref$bPadding === void 0 ? {
       x: 20,
       y: 50
-    } : _ref$bPadding;
+    } : _ref$bPadding,
+        _ref$refreshSeconds = _ref.refreshSeconds,
+        refreshSeconds = _ref$refreshSeconds === void 0 ? .2 : _ref$refreshSeconds;
 
     _classCallCheck(this, Attacher);
 
@@ -71,6 +73,9 @@ function () {
     this.transition = transition;
     this.offset = offset;
     this.bPadding = bPadding;
+    this.forcedPosPriority = false;
+    this.refreshTimer = null;
+    this.refreshSeconds = refreshSeconds;
     this.init();
     if (target) this.bind(target);
   }
@@ -87,6 +92,7 @@ function () {
       var _this = this;
 
       this.reference.style.position = 'absolute';
+      this.reference.style.zIndex = 1;
       this.reference.style.left = 0;
       this.reference.style.bottom = 0;
       window.addEventListener('resize', function () {
@@ -118,6 +124,7 @@ function () {
       setTimeout(function () {
         _this2.reference.style.transition = "".concat(_this2.transition, "s");
       }, 10);
+      this.startWatch();
       if (this.debug) console.log("Attacher bind method fired. ", this);
     }
     /**
@@ -130,6 +137,7 @@ function () {
       this.reference.style.transition = '';
       this.reference.style.transform = '';
       this.target = undefined;
+      this.stopWatch();
       if (this.debug) console.log("Attacher unbind method fired. ", this);
     }
     /**
@@ -148,6 +156,39 @@ function () {
       }
 
       this.setPosition(this.getPosition());
+    }
+    /**
+     * Listen document scroll change.
+     */
+
+  }, {
+    key: "startWatch",
+    value: function startWatch() {
+      var _this3 = this;
+
+      document.addEventListener('scroll', this.eventlistener = function (e) {
+        if (_this3.forcedPosPriority == _this3.checkBoundaryY()) return;
+        if (_this3.debug) console.warn('New bleeding detected. Refreshing...');
+        clearTimeout(_this3.refreshTimer);
+        _this3.refreshTimer = setTimeout(function () {
+          _this3.refresh();
+
+          if (_this3.debug) console.warn('Refreshed.');
+        }, _this3.refreshSeconds * 1000);
+      }, {
+        passive: true
+      });
+      if (this.debug) console.warn('attacher started watching.');
+    }
+    /**
+     * Stop listening document scroll change
+     */
+
+  }, {
+    key: "stopWatch",
+    value: function stopWatch() {
+      document.removeEventListener('scroll', this.eventlistener);
+      if (this.debug) console.warn('attacher stopped watching.');
     }
     /**
      * Decide new position according to window size and priority.
@@ -274,6 +315,7 @@ function () {
 
       if (topBoundary >= refTopBoundary) {
         if (this.debug) console.warn('Reference bleeds from top.');
+        this.forcedPosPriority = 'bottom';
         return 'top';
       }
 
@@ -282,10 +324,12 @@ function () {
 
       if (refBottomBoundary > bottomBoundary) {
         if (this.debug) console.warn('Reference bleeds from bottom.');
+        this.forcedPosPriority = 'top';
         return 'bottom';
       }
 
       if (this.debug) console.warn('No bleeding detected.');
+      this.forcedPosPriority = false;
       return false;
     }
   }]);
@@ -299,6 +343,7 @@ function () {
 var reference = document.querySelector('.reference');
 var targets = document.querySelectorAll('.target');
 var attacher = attacher = new Attacher(reference, {
+  target: targets[0],
   debug: true
 });
 reference.addEventListener('click', function (e) {
