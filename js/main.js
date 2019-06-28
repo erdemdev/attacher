@@ -14,7 +14,10 @@ export default class Attacher {
    * @arg {Object} options of attacher.
    * @prop {Element} target element.
    * @prop {Boolean} debug mode.
-   * @prop {String} position ("top", "bottom", "center") of target.
+   * @prop {String} posPriority ("top", "bottom", "center") of target.
+   * @prop {Float} transition seconds.
+   * @prop {Object} offset of reference to target.
+   * @prop {Object} bPadding padding of boundary.
    */
   constructor(reference, {
     target = undefined,
@@ -22,6 +25,7 @@ export default class Attacher {
     posPriority = 'top', // TODO add position priority support.
     transition = 2,
     offset = {x: 0, y: 10},
+    bPadding = {x: 20, y: 20},
   }) {
     this.reference = reference;
     this.target = target;
@@ -29,6 +33,7 @@ export default class Attacher {
     this.posPriority = posPriority;
     this.transition = transition;
     this.offset = offset;
+    this.bPadding = bPadding;
     this.init();
     if (target) this.bind(target);
   }
@@ -117,20 +122,22 @@ export default class Attacher {
    * @return {Float} X distance between reference and target.
    */
   getDistanceX() {
-    const targetPosX =
-    this.target.offsetLeft + (this.target.offsetWidth / 2);
-    const refCenterDistance = this.reference.offsetWidth / 2;
-    const referencePosX = this.reference.offsetLeft + refCenterDistance;
+    const targetCenterDistanceX = this.target.offsetWidth / 2;
+    const targetPosX = this.target.offsetLeft + targetCenterDistanceX;
+    const refCenterDistanceX = this.reference.offsetWidth / 2;
+    const referencePosX = this.reference.offsetLeft + refCenterDistanceX;
+    let distanceX = targetPosX - referencePosX;
     /**
-     * Check is out of Boundary.
+     * Check if reference is out of boundary.
      */
     const bodyWidth = document.body.clientWidth;
-    let distanceX = targetPosX - referencePosX;
-    // TODO if bleeds position to clicked point.
-    if (targetPosX + refCenterDistance + 20 > bodyWidth) {
+    if (targetPosX + refCenterDistanceX + this.bPadding.x > bodyWidth) {
       distanceX = this.reference.offsetLeft + this.reference.offsetWidth;
-      distanceX = bodyWidth - distanceX - 20;
+      distanceX = bodyWidth - distanceX - this.bPadding.x;
       if (this.debug) console.warn('Element bleeds from right.');
+    } else if (0 > targetPosX - refCenterDistanceX - this.bPadding.x) {
+      distanceX += refCenterDistanceX - targetPosX + this.bPadding.x;
+      if (this.debug) console.warn('Element bleeds from left.');
     }
     return distanceX;
   }
@@ -143,7 +150,6 @@ export default class Attacher {
   getDistanceY(posPriority = this.posPriority) {
     let targetPosY = 0;
     let referencePosY = 0;
-    // TODO: ADD WINDOW SIZE PRIORITY
     /**
      * Select position according to priority.
      */
@@ -165,6 +171,15 @@ export default class Attacher {
         referencePosY = this.reference.offsetTop;
         break;
     }
-    return targetPosY - referencePosY;
+    const distanceY = targetPosY - referencePosY;
+    this.calculateBoundaryY(distanceY);
+    return distanceY;
+  }
+
+  /**
+   * Check if reference is out of boundary in Y axis.
+   */
+  calculateBoundaryY() {
+    //
   }
 };

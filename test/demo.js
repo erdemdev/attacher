@@ -36,7 +36,10 @@ function () {
    * @arg {Object} options of attacher.
    * @prop {Element} target element.
    * @prop {Boolean} debug mode.
-   * @prop {String} position ("top", "bottom", "center") of target.
+   * @prop {String} posPriority ("top", "bottom", "center") of target.
+   * @prop {Float} transition seconds.
+   * @prop {Object} offset of reference to target.
+   * @prop {Object} bPadding padding of boundary.
    */
   function Attacher(reference, _ref) {
     var _ref$target = _ref.target,
@@ -51,7 +54,12 @@ function () {
         offset = _ref$offset === void 0 ? {
       x: 0,
       y: 10
-    } : _ref$offset;
+    } : _ref$offset,
+        _ref$bPadding = _ref.bPadding,
+        bPadding = _ref$bPadding === void 0 ? {
+      x: 20,
+      y: 20
+    } : _ref$bPadding;
 
     _classCallCheck(this, Attacher);
 
@@ -61,6 +69,7 @@ function () {
     this.posPriority = posPriority;
     this.transition = transition;
     this.offset = offset;
+    this.bPadding = bPadding;
     this.init();
     if (target) this.bind(target);
   }
@@ -171,20 +180,24 @@ function () {
   }, {
     key: "getDistanceX",
     value: function getDistanceX() {
-      var targetPosX = this.target.offsetLeft + this.target.offsetWidth / 2;
-      var refCenterDistance = this.reference.offsetWidth / 2;
-      var referencePosX = this.reference.offsetLeft + refCenterDistance;
+      var targetCenterDistanceX = this.target.offsetWidth / 2;
+      var targetPosX = this.target.offsetLeft + targetCenterDistanceX;
+      var refCenterDistanceX = this.reference.offsetWidth / 2;
+      var referencePosX = this.reference.offsetLeft + refCenterDistanceX;
+      var distanceX = targetPosX - referencePosX;
       /**
-       * Check is out of Boundary.
+       * Check if reference is out of boundary.
        */
 
       var bodyWidth = document.body.clientWidth;
-      var distanceX = targetPosX - referencePosX; // TODO if bleeds position to clicked point.
 
-      if (targetPosX + refCenterDistance + 20 > bodyWidth) {
+      if (targetPosX + refCenterDistanceX + this.bPadding.x > bodyWidth) {
         distanceX = this.reference.offsetLeft + this.reference.offsetWidth;
-        distanceX = bodyWidth - distanceX - 20;
+        distanceX = bodyWidth - distanceX - this.bPadding.x;
         if (this.debug) console.warn('Element bleeds from right.');
+      } else if (0 > targetPosX - refCenterDistanceX - this.bPadding.x) {
+        distanceX += refCenterDistanceX - targetPosX + this.bPadding.x;
+        if (this.debug) console.warn('Element bleeds from left.');
       }
 
       return distanceX;
@@ -200,8 +213,7 @@ function () {
     value: function getDistanceY() {
       var posPriority = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.posPriority;
       var targetPosY = 0;
-      var referencePosY = 0; // TODO: ADD WINDOW SIZE PRIORITY
-
+      var referencePosY = 0;
       /**
        * Select position according to priority.
        */
@@ -223,7 +235,17 @@ function () {
           break;
       }
 
-      return targetPosY - referencePosY;
+      var distanceY = targetPosY - referencePosY;
+      this.calculateBoundaryY(distanceY);
+      return distanceY;
+    }
+    /**
+     * Check if reference is out of boundary in Y axis.
+     */
+
+  }, {
+    key: "calculateBoundaryY",
+    value: function calculateBoundaryY() {//
     }
   }]);
 
