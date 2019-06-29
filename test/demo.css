@@ -37,6 +37,8 @@ body {
     text-align: center;
     border: 5px solid white;
     box-shadow: 0px 10px 25px -15px black; }
+    .target__box span {
+      pointer-events: none; }
     .target__box--right {
       position: absolute;
       right: 0; }

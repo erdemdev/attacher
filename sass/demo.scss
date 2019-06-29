@@ -33,7 +33,7 @@ body {
       color: white;
       text-align: center;
       width: 100%;
-      pointer-events:none;
+      pointer-events: none;
     }
   }
 
@@ -47,6 +47,10 @@ body {
     text-align: center;
     border: 5px solid white;
     box-shadow: $shadow;
+
+    span {
+      pointer-events: none;
+    }
 
     &--right {
       position: absolute;

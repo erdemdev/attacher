@@ -26,7 +26,7 @@ export default class Attacher {
     posPriority = 'top',
     transition = 1,
     offset = {left: 0, top: 10},
-    bPadding = {left: 20, top: 50},
+    bPadding = {left: 20, top: 20},
     refreshSeconds = .2,
   }) {
     this.reference = reference;
@@ -53,17 +53,7 @@ export default class Attacher {
     this.reference.style.zIndex = 1;
     this.reference.style.left = 0;
     this.reference.style.bottom = 0;
-    window.addEventListener('resize', () => {
-      this.reference.style.display = 'none';
-      setTimeout(() => {
-        this.reference.style.display = '';
-        this.refresh();
-      }, 10);
-    });
-    if (this.debug) {
-      console.log('attacher event listener added.');
-      console.log('attacher component created.', this);
-    }
+    if (this.debug) console.log('attacher component created.', this);
   }
 
   /**
@@ -71,6 +61,7 @@ export default class Attacher {
    * @arg {Element} target could be a new target element.
    */
   bind(target) {
+    this.unbind();
     this.target = target;
     this.refresh();
     setTimeout(() => {
@@ -85,7 +76,8 @@ export default class Attacher {
    */
   unbind() {
     this.reference.style.transition = '';
-    this.reference.style.transform = '';
+    this.reference.style.left = '0';
+    this.reference.style.top = '0';
     this.target = undefined;
     this.stopWatch();
     if (this.debug) console.log(`Attacher unbind method fired. `, this);
@@ -108,26 +100,35 @@ export default class Attacher {
    * Listen document scroll change.
    */
   startWatch() {
-    document.addEventListener('scroll', this.eventlistener = (e) => {
+    document.addEventListener('scroll', this.scrollWatcher = (e) => {
       if (this.forcedPosPriority ==
         this.checkBleedingY(this.targetPosY)) {
         return;
       };
-      if (this.debug) console.warn('New bleeding detected. Refreshing...');
+      if (this.debug) console.warn('Refresh requested.');
       clearTimeout(this.refreshTimer);
       this.refreshTimer = setTimeout(() => {
         this.refresh();
         if (this.debug) console.warn('Refreshed.');
       }, this.refreshSeconds * 1000);
     }, {passive: true});
+    window.addEventListener('resize', this.resizeWatcher = () => {
+      this.reference.style.display = 'none';
+      setTimeout(() => {
+        this.reference.style.display = '';
+        this.refresh();
+        if (this.debug) console.warn('Document resized.');
+      }, 10);
+    });
     if (this.debug) console.warn('attacher started watching.');
   }
 
   /**
-   * Stop listening document scroll change
+   * Stop listening document scroll change.
    */
   stopWatch() {
-    document.removeEventListener('scroll', this.eventlistener);
+    document.removeEventListener('scroll', this.scrollWatcher);
+    document.removeEventListener('resize', this.resizeWatcher);
     if (this.debug) console.warn('attacher stopped watching.');
   }
 
@@ -137,12 +138,14 @@ export default class Attacher {
    */
   getPosition() {
     const clientRect = this.target.getBoundingClientRect();
-    const positionX = clientRect.left + document.body.scrollLeft;
-    const positionY = clientRect.top + document.body.scrollTop;
+    const positionX =
+    this.offsetPositionX(clientRect.left + document.body.scrollLeft);
+    const positionY =
+    this.offsetPositionY(clientRect.top + document.body.scrollTop);
     this.targetPosY = positionY;
     return {
-      left: this.offsetPositionX(positionX),
-      top: this.offsetPositionY(positionY),
+      left: positionX,
+      top: positionY,
     };
   }
 
@@ -164,17 +167,18 @@ export default class Attacher {
     const newPosition = position - (this.reference.offsetWidth / 2) +
     (this.target.offsetWidth / 2);
     /**
-     * Check if reference is out of boundary.
+     * Check if reference is out-of-bounds.
      */
-    // const bodyWidth = document.body.clientWidth;
-    // if (targetPosX + refCenterDistanceX + this.bPadding.left > bodyWidth) {
-    //   distanceX = this.reference.offsetLeft + this.reference.offsetWidth;
-    //   distanceX = bodyWidth - distanceX - this.bPadding.left;
-    //   if (this.debug) console.warn('Element bleeds from right.');
-    // } else if (0 > targetPosX - refCenterDistanceX - this.bPadding.left) {
-    //   distanceX += refCenterDistanceX - targetPosX + this.bPadding.left;
-    //   if (this.debug) console.warn('Element bleeds from left.');
-    // }
+    const bodyWidth = document.body.clientWidth;
+    if (newPosition + this.reference.offsetWidth +
+      this.bPadding.left > bodyWidth) {
+      if (this.debug) console.warn('Reference bleeds from right.');
+      return bodyWidth - this.reference.offsetWidth - this.bPadding.left;
+    }
+    if (newPosition - this.bPadding.left < 0) {
+      if (this.debug) console.warn('Reference bleeds from left.');
+      return 0 + this.bPadding.left;
+    }
     return newPosition;
   }
 
@@ -229,8 +233,7 @@ export default class Attacher {
    */
   checkBleedingY(position) {
     const topBoundary = document.body.scrollTop;
-    const refTopBoundary = position - this.reference.offsetHeight -
-    this.bPadding.top;
+    const refTopBoundary = position - this.bPadding.top;
     if (topBoundary >= refTopBoundary ) {
       if (this.debug) console.warn('Reference bleeds from top.');
       this.forcedPosPriority = 'bottom';
@@ -244,7 +247,6 @@ export default class Attacher {
       this.forcedPosPriority = 'top';
       return 'bottom';
     }
-    if (this.debug) console.warn('No bleeding detected.');
     this.forcedPosPriority = false;
     return false;
   }

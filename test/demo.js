@@ -59,7 +59,7 @@ function () {
         _ref$bPadding = _ref.bPadding,
         bPadding = _ref$bPadding === void 0 ? {
       left: 20,
-      top: 50
+      top: 20
     } : _ref$bPadding,
         _ref$refreshSeconds = _ref.refreshSeconds,
         refreshSeconds = _ref$refreshSeconds === void 0 ? .2 : _ref$refreshSeconds;
@@ -89,25 +89,11 @@ function () {
   _createClass(Attacher, [{
     key: "init",
     value: function init() {
-      var _this = this;
-
       this.reference.style.position = 'absolute';
       this.reference.style.zIndex = 1;
       this.reference.style.left = 0;
       this.reference.style.bottom = 0;
-      window.addEventListener('resize', function () {
-        _this.reference.style.display = 'none';
-        setTimeout(function () {
-          _this.reference.style.display = '';
-
-          _this.refresh();
-        }, 10);
-      });
-
-      if (this.debug) {
-        console.log('attacher event listener added.');
-        console.log('attacher component created.', this);
-      }
+      if (this.debug) console.log('attacher component created.', this);
     }
     /**
      * Binds reference element to target element.
@@ -117,12 +103,13 @@ function () {
   }, {
     key: "bind",
     value: function bind(target) {
-      var _this2 = this;
+      var _this = this;
 
+      this.unbind();
       this.target = target;
       this.refresh();
       setTimeout(function () {
-        _this2.reference.style.transition = "".concat(_this2.transition, "s");
+        _this.reference.style.transition = "".concat(_this.transition, "s");
       }, 10);
       this.startWatch();
       if (this.debug) console.log("Attacher bind method fired. ", this);
@@ -135,7 +122,8 @@ function () {
     key: "unbind",
     value: function unbind() {
       this.reference.style.transition = '';
-      this.reference.style.transform = '';
+      this.reference.style.left = '0';
+      this.reference.style.top = '0';
       this.target = undefined;
       this.stopWatch();
       if (this.debug) console.log("Attacher unbind method fired. ", this);
@@ -164,32 +152,43 @@ function () {
   }, {
     key: "startWatch",
     value: function startWatch() {
-      var _this3 = this;
+      var _this2 = this;
 
-      document.addEventListener('scroll', this.eventlistener = function (e) {
-        if (_this3.forcedPosPriority == _this3.checkBleedingY(_this3.targetPosY)) {
+      document.addEventListener('scroll', this.scrollWatcher = function (e) {
+        if (_this2.forcedPosPriority == _this2.checkBleedingY(_this2.targetPosY)) {
           return;
         }
-        if (_this3.debug) console.warn('New bleeding detected. Refreshing...');
-        clearTimeout(_this3.refreshTimer);
-        _this3.refreshTimer = setTimeout(function () {
-          _this3.refresh();
+        if (_this2.debug) console.warn('Refresh requested.');
+        clearTimeout(_this2.refreshTimer);
+        _this2.refreshTimer = setTimeout(function () {
+          _this2.refresh();
 
-          if (_this3.debug) console.warn('Refreshed.');
-        }, _this3.refreshSeconds * 1000);
+          if (_this2.debug) console.warn('Refreshed.');
+        }, _this2.refreshSeconds * 1000);
       }, {
         passive: true
+      });
+      window.addEventListener('resize', this.resizeWatcher = function () {
+        _this2.reference.style.display = 'none';
+        setTimeout(function () {
+          _this2.reference.style.display = '';
+
+          _this2.refresh();
+
+          if (_this2.debug) console.warn('Document resized.');
+        }, 10);
       });
       if (this.debug) console.warn('attacher started watching.');
     }
     /**
-     * Stop listening document scroll change
+     * Stop listening document scroll change.
      */
 
   }, {
     key: "stopWatch",
     value: function stopWatch() {
-      document.removeEventListener('scroll', this.eventlistener);
+      document.removeEventListener('scroll', this.scrollWatcher);
+      document.removeEventListener('resize', this.resizeWatcher);
       if (this.debug) console.warn('attacher stopped watching.');
     }
     /**
@@ -201,12 +200,12 @@ function () {
     key: "getPosition",
     value: function getPosition() {
       var clientRect = this.target.getBoundingClientRect();
-      var positionX = clientRect.left + document.body.scrollLeft;
-      var positionY = clientRect.top + document.body.scrollTop;
+      var positionX = this.offsetPositionX(clientRect.left + document.body.scrollLeft);
+      var positionY = this.offsetPositionY(clientRect.top + document.body.scrollTop);
       this.targetPosY = positionY;
       return {
-        left: this.offsetPositionX(positionX),
-        top: this.offsetPositionY(positionY)
+        left: positionX,
+        top: positionY
       };
     }
     /**
@@ -231,17 +230,20 @@ function () {
     value: function offsetPositionX(position) {
       var newPosition = position - this.reference.offsetWidth / 2 + this.target.offsetWidth / 2;
       /**
-       * Check if reference is out of boundary.
+       * Check if reference is out-of-bounds.
        */
-      // const bodyWidth = document.body.clientWidth;
-      // if (targetPosX + refCenterDistanceX + this.bPadding.left > bodyWidth) {
-      //   distanceX = this.reference.offsetLeft + this.reference.offsetWidth;
-      //   distanceX = bodyWidth - distanceX - this.bPadding.left;
-      //   if (this.debug) console.warn('Element bleeds from right.');
-      // } else if (0 > targetPosX - refCenterDistanceX - this.bPadding.left) {
-      //   distanceX += refCenterDistanceX - targetPosX + this.bPadding.left;
-      //   if (this.debug) console.warn('Element bleeds from left.');
-      // }
+
+      var bodyWidth = document.body.clientWidth;
+
+      if (newPosition + this.reference.offsetWidth + this.bPadding.left > bodyWidth) {
+        if (this.debug) console.warn('Reference bleeds from right.');
+        return bodyWidth - this.reference.offsetWidth - this.bPadding.left;
+      }
+
+      if (newPosition - this.bPadding.left < 0) {
+        if (this.debug) console.warn('Reference bleeds from left.');
+        return 0 + this.bPadding.left;
+      }
 
       return newPosition;
     }
@@ -310,7 +312,7 @@ function () {
     key: "checkBleedingY",
     value: function checkBleedingY(position) {
       var topBoundary = document.body.scrollTop;
-      var refTopBoundary = position - this.reference.offsetHeight - this.bPadding.top;
+      var refTopBoundary = position - this.bPadding.top;
 
       if (topBoundary >= refTopBoundary) {
         if (this.debug) console.warn('Reference bleeds from top.');
@@ -327,7 +329,6 @@ function () {
         return 'bottom';
       }
 
-      if (this.debug) console.warn('No bleeding detected.');
       this.forcedPosPriority = false;
       return false;
     }
@@ -343,6 +344,7 @@ var reference = document.querySelector('.reference');
 var targets = document.querySelectorAll('.target');
 var attacher = attacher = new Attacher(reference, {
   target: targets[0],
+  posPriority: 'top',
   debug: true
 });
 reference.addEventListener('click', function (e) {
