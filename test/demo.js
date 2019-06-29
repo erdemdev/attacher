@@ -86,8 +86,6 @@ function () {
 
     this.reference.style.position = 'absolute';
     this.reference.style.zIndex = 1;
-    this.reference.style.left = 0;
-    this.reference.style.bottom = 0;
     /**
      * Bind reference to target if target exists.
      */
@@ -122,8 +120,8 @@ function () {
     value: function unbind() {
       if (this.debug) console.log("Attacher unbind method fired.");
       this.reference.style.transition = '';
-      this.reference.style.left = '0';
-      this.reference.style.top = '0';
+      this.reference.style.left = '';
+      this.reference.style.top = '';
       this.target = undefined;
       this.stopWatch();
     }
@@ -219,7 +217,7 @@ function () {
   }, {
     key: "switchToSleepMode",
     value: function switchToSleepMode() {
-      if (window.scrollY > this.reference.offsetTop + this.reference.offsetHeight || this.reference.offsetTop > window.scrollY + document.body.clientHeight) {
+      if (window.scrollY > this.reference.offsetTop + this.reference.offsetHeight || this.reference.offsetTop > window.scrollY + window.innerHeight) {
         if (this.debug && this.sleepMode == false) {
           console.warn('attacher switched to sleep mode.');
         }
@@ -287,7 +285,7 @@ function () {
        * Check if reference is out-of-bounds.
        */
 
-      var bodyWidth = document.body.clientWidth;
+      var bodyWidth = window.innerWidth;
 
       if (newPosition + this.reference.offsetWidth + this.bPadding.left > bodyWidth) {
         if (this.debug) console.log('Reference bleeds from right.');
@@ -374,7 +372,7 @@ function () {
         return 'top';
       }
 
-      var bottomBoundary = topBoundary + document.body.clientHeight;
+      var bottomBoundary = topBoundary + window.innerHeight;
       var refBottomBoundary = position + this.reference.offsetHeight + this.bPadding.top;
 
       if (refBottomBoundary > bottomBoundary) {

@@ -47,8 +47,6 @@ export default class Attacher {
      */
     this.reference.style.position = 'absolute';
     this.reference.style.zIndex = 1;
-    this.reference.style.left = 0;
-    this.reference.style.bottom = 0;
     /**
      * Bind reference to target if target exists.
      */
@@ -75,8 +73,8 @@ export default class Attacher {
   unbind() {
     if (this.debug) console.log(`Attacher unbind method fired.`);
     this.reference.style.transition = '';
-    this.reference.style.left = '0';
-    this.reference.style.top = '0';
+    this.reference.style.left = '';
+    this.reference.style.top = '';
     this.target = undefined;
     this.stopWatch();
   }
@@ -151,7 +149,7 @@ export default class Attacher {
   switchToSleepMode() {
     if (window.scrollY >
       this.reference.offsetTop + this.reference.offsetHeight ||
-      this.reference.offsetTop > window.scrollY + document.body.clientHeight
+      this.reference.offsetTop > window.scrollY + window.innerHeight
     ) {
       if (this.debug && this.sleepMode == false) {
         console.warn('attacher switched to sleep mode.');
@@ -211,7 +209,7 @@ export default class Attacher {
     /**
      * Check if reference is out-of-bounds.
      */
-    const bodyWidth = document.body.clientWidth;
+    const bodyWidth = window.innerWidth;
     if (newPosition + this.reference.offsetWidth +
       this.bPadding.left > bodyWidth) {
       if (this.debug) console.log('Reference bleeds from right.');
@@ -281,7 +279,7 @@ export default class Attacher {
       this.forcedPosPriority = 'bottom';
       return 'top';
     }
-    const bottomBoundary = topBoundary + document.body.clientHeight;
+    const bottomBoundary = topBoundary + window.innerHeight;
     const refBottomBoundary = position + this.reference.offsetHeight +
     this.bPadding.top;
     if (refBottomBoundary > bottomBoundary) {
