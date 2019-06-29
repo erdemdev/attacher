@@ -61,7 +61,6 @@ export default class Attacher {
    * @arg {Element} target could be a new target element.
    */
   bind(target) {
-    this.unbind();
     this.target = target;
     this.refresh();
     setTimeout(() => {

@@ -105,7 +105,6 @@ function () {
     value: function bind(target) {
       var _this = this;
 
-      this.unbind();
       this.target = target;
       this.refresh();
       setTimeout(function () {
