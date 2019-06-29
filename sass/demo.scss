@@ -24,6 +24,10 @@ h1 {
 .target {
   cursor: pointer;
 
+  &:hover {
+    background-color: red;
+  }
+
   &__board {
     background-color: $red;
     width: 100px;

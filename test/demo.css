@@ -16,6 +16,8 @@ h1 {
 
 .target {
   cursor: pointer; }
+  .target:hover {
+    background-color: red; }
   .target__board {
     background-color: #e01818;
     width: 100px;
