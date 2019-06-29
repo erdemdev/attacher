@@ -41,7 +41,6 @@ export default class Attacher {
     this.offset = offset;
     this.bPadding = bPadding;
     this.forcedPosPriority = false;
-    this.refreshTimer = null;
     this.refreshSeconds = refreshSeconds;
     /**
      * Set up reference element's styles.
@@ -107,18 +106,8 @@ export default class Attacher {
      * Refresh reference element when the user scrolls the page.
      */
     document.addEventListener('scroll', this.scrollWatcher = () => {
-      if (this.checkBleedingTimer) return;
-      if (this.forcedPosPriority ==
-        this.checkBleedingY(this.targetPosY)) {
-        return;
-      };
-      if (this.debug) console.log('Refresh requested.');
-      setTimeout(() => {
-        this.checkBleedingTimer = false;
-        this.refresh();
-        if (this.debug) console.warn('Refreshed.');
-      }, this.refreshSeconds * 1000);
-      this.checkBleedingTimer = true;
+      if (!this.sleepMode) this.autoRefresh();
+      this.switchToSleepMode();
     }, {passive: true});
     /**
      * Refresh when window object resized by the user.
@@ -140,7 +129,44 @@ export default class Attacher {
   }
 
   /**
-   * Stop listening document scroll change.
+   * Auto refreshes attacher on scroll event.
+   */
+  autoRefresh() {
+    if (this.checkBleedingTimer) return;
+    if (this.forcedPosPriority == this.checkBleedingY(this.targetPosY)) {
+      return;
+    };
+    if (this.debug) console.log('Refresh requested.');
+    setTimeout(() => {
+      this.checkBleedingTimer = false;
+      this.refresh();
+      if (this.debug) console.log('Refreshed.');
+    }, this.refreshSeconds * 1000);
+    this.checkBleedingTimer = true;
+  }
+
+  /**
+   * Whether to switch sleep mode for watch.
+   */
+  switchToSleepMode() {
+    if (window.scrollY >
+      this.reference.offsetTop + this.reference.offsetHeight ||
+      this.reference.offsetTop > window.scrollY + document.body.clientHeight
+    ) {
+      if (this.debug && this.sleepMode == false) {
+        console.warn('attacher switched to sleep mode.');
+      }
+      this.sleepMode = true;
+      return;
+    }
+    if (this.debug && this.sleepMode == true) {
+      console.warn('attacher switched off sleep mode.');
+    }
+    this.sleepMode = false;
+  }
+
+  /**
+   * Stop listening scroll and resize events.
    */
   stopWatch() {
     document.removeEventListener('scroll', this.scrollWatcher);
