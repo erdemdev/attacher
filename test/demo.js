@@ -53,13 +53,13 @@ function () {
         transition = _ref$transition === void 0 ? 1 : _ref$transition,
         _ref$offset = _ref.offset,
         offset = _ref$offset === void 0 ? {
-      x: 0,
-      y: 10
+      left: 0,
+      top: 10
     } : _ref$offset,
         _ref$bPadding = _ref.bPadding,
         bPadding = _ref$bPadding === void 0 ? {
-      x: 20,
-      y: 50
+      left: 20,
+      top: 50
     } : _ref$bPadding,
         _ref$refreshSeconds = _ref.refreshSeconds,
         refreshSeconds = _ref$refreshSeconds === void 0 ? .2 : _ref$refreshSeconds;
@@ -167,7 +167,9 @@ function () {
       var _this3 = this;
 
       document.addEventListener('scroll', this.eventlistener = function (e) {
-        if (_this3.forcedPosPriority == _this3.checkBoundaryY()) return;
+        if (_this3.forcedPosPriority == _this3.checkBleedingY(_this3.targetPosY)) {
+          return;
+        }
         if (_this3.debug) console.warn('New bleeding detected. Refreshing...');
         clearTimeout(_this3.refreshTimer);
         _this3.refreshTimer = setTimeout(function () {
@@ -198,12 +200,14 @@ function () {
   }, {
     key: "getPosition",
     value: function getPosition() {
-      var position = {
-        x: this.getDistanceX(),
-        y: this.getDistanceY()
+      var clientRect = this.target.getBoundingClientRect();
+      var positionX = clientRect.left + document.body.scrollLeft;
+      var positionY = clientRect.top + document.body.scrollTop;
+      this.targetPosY = positionY;
+      return {
+        left: this.offsetPositionX(positionX),
+        top: this.offsetPositionY(positionY)
       };
-      if (this.debug) console.log(position, 'is new position of reference.');
-      return position;
     }
     /**
      * Set position of reference element.
@@ -213,105 +217,100 @@ function () {
   }, {
     key: "setPosition",
     value: function setPosition(position) {
-      this.reference.style.transform = "translate(".concat(position.x, "px, ").concat(position.y, "px)");
+      this.reference.style.left = "".concat(position.left, "px");
+      this.reference.style.top = "".concat(position.top, "px");
     }
     /**
      * check if X axis is out of border.
+     * @arg {FLoat} position of target in x-axis.
      * @return {Float} X distance between reference and target.
      */
 
   }, {
-    key: "getDistanceX",
-    value: function getDistanceX() {
-      var targetCenterDistanceX = this.target.offsetWidth / 2;
-      var targetPosX = this.target.offsetLeft + targetCenterDistanceX;
-      var refCenterDistanceX = this.reference.offsetWidth / 2;
-      var referencePosX = this.reference.offsetLeft + refCenterDistanceX;
-      var distanceX = targetPosX - referencePosX;
+    key: "offsetPositionX",
+    value: function offsetPositionX(position) {
+      var newPosition = position - this.reference.offsetWidth / 2 + this.target.offsetWidth / 2;
       /**
        * Check if reference is out of boundary.
        */
+      // const bodyWidth = document.body.clientWidth;
+      // if (targetPosX + refCenterDistanceX + this.bPadding.left > bodyWidth) {
+      //   distanceX = this.reference.offsetLeft + this.reference.offsetWidth;
+      //   distanceX = bodyWidth - distanceX - this.bPadding.left;
+      //   if (this.debug) console.warn('Element bleeds from right.');
+      // } else if (0 > targetPosX - refCenterDistanceX - this.bPadding.left) {
+      //   distanceX += refCenterDistanceX - targetPosX + this.bPadding.left;
+      //   if (this.debug) console.warn('Element bleeds from left.');
+      // }
 
-      var bodyWidth = document.body.clientWidth;
-
-      if (targetPosX + refCenterDistanceX + this.bPadding.x > bodyWidth) {
-        distanceX = this.reference.offsetLeft + this.reference.offsetWidth;
-        distanceX = bodyWidth - distanceX - this.bPadding.x;
-        if (this.debug) console.warn('Element bleeds from right.');
-      } else if (0 > targetPosX - refCenterDistanceX - this.bPadding.x) {
-        distanceX += refCenterDistanceX - targetPosX + this.bPadding.x;
-        if (this.debug) console.warn('Element bleeds from left.');
-      }
-
-      return distanceX;
+      return newPosition;
     }
     /**
      * Calculate Y distance first.
      * Check if Y distance is out of boundary.
      * If out of boundary. Recalculate Y distance.
+     * @arg {Float} position of target in y-axis.
      * @return {Float} Y distance between reference and target.
      */
 
   }, {
-    key: "getDistanceY",
-    value: function getDistanceY() {
-      var distanceY = this.calculateDistanceY();
+    key: "offsetPositionY",
+    value: function offsetPositionY(position) {
+      var newPosition = this.repositionPivotY(position);
 
-      switch (this.checkBoundaryY(distanceY)) {
+      switch (this.checkBleedingY(newPosition)) {
         case 'top':
-          distanceY = this.calculateDistanceY('bottom');
+          newPosition = this.repositionPivotY(position, 'bottom');
           break;
 
         case 'bottom':
-          distanceY = this.calculateDistanceY('top');
+          newPosition = this.repositionPivotY(position, 'top');
           break;
       }
 
-      return distanceY;
+      return newPosition;
     }
     /**
     * Calculate position priority of reference element.
+    * @arg {Float} position of target in y-axis.
     * @arg {String} posPriority position priority.
     * @return {Float} Y distance between reference and target.
      */
 
   }, {
-    key: "calculateDistanceY",
-    value: function calculateDistanceY() {
-      var posPriority = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.posPriority;
-      var targetPosY = 0;
-      var referencePosY = 0;
+    key: "repositionPivotY",
+    value: function repositionPivotY(position) {
+      var posPriority = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this.posPriority;
+      var newPosition = 0;
 
       switch (posPriority) {
         case 'center':
-          targetPosY = this.target.offsetTop + this.target.offsetHeight / 2;
-          referencePosY = this.reference.offsetTop + this.reference.offsetHeight / 2;
+          newPosition = position;
           break;
 
         case 'top':
-          targetPosY = this.target.offsetTop;
-          referencePosY = this.reference.offsetTop + this.reference.offsetHeight + this.offset.y;
+          newPosition = position - this.reference.offsetHeight - this.offset.top;
           break;
 
         case 'bottom':
-          targetPosY = this.target.offsetTop + this.target.offsetHeight + this.offset.y;
-          referencePosY = this.reference.offsetTop;
+          newPosition = position + this.target.offsetHeight + this.offset.top;
           break;
       }
 
-      return targetPosY - referencePosY;
+      return newPosition;
     }
     /**
-     * Check if reference is out-of-bounds in Y axis.
+     * Check if target position is out-of-bounds in y-axis.
+     * @arg {Float} position of target in y-axis.
      * @return {Boolean | String} the bleeding position of reference.
      * false for no bleeding.
      */
 
   }, {
-    key: "checkBoundaryY",
-    value: function checkBoundaryY() {
+    key: "checkBleedingY",
+    value: function checkBleedingY(position) {
       var topBoundary = document.body.scrollTop;
-      var refTopBoundary = this.target.offsetTop - this.reference.offsetHeight - this.offset.y - this.bPadding.y;
+      var refTopBoundary = position - this.reference.offsetHeight - this.bPadding.top;
 
       if (topBoundary >= refTopBoundary) {
         if (this.debug) console.warn('Reference bleeds from top.');
@@ -320,7 +319,7 @@ function () {
       }
 
       var bottomBoundary = topBoundary + document.body.clientHeight;
-      var refBottomBoundary = this.target.offsetTop + this.target.offsetHeight + this.reference.offsetHeight + this.offset.y + this.bPadding.y;
+      var refBottomBoundary = position + this.reference.offsetHeight + this.bPadding.top;
 
       if (refBottomBoundary > bottomBoundary) {
         if (this.debug) console.warn('Reference bleeds from bottom.');

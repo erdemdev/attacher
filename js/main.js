@@ -25,8 +25,8 @@ export default class Attacher {
     debug = false,
     posPriority = 'top',
     transition = 1,
-    offset = {x: 0, y: 10},
-    bPadding = {x: 20, y: 50},
+    offset = {left: 0, top: 10},
+    bPadding = {left: 20, top: 50},
     refreshSeconds = .2,
   }) {
     this.reference = reference;
@@ -109,7 +109,10 @@ export default class Attacher {
    */
   startWatch() {
     document.addEventListener('scroll', this.eventlistener = (e) => {
-      if (this.forcedPosPriority == this.checkBoundaryY()) return;
+      if (this.forcedPosPriority ==
+        this.checkBleedingY(this.targetPosY)) {
+        return;
+      };
       if (this.debug) console.warn('New bleeding detected. Refreshing...');
       clearTimeout(this.refreshTimer);
       this.refreshTimer = setTimeout(() => {
@@ -133,12 +136,14 @@ export default class Attacher {
    * @return {Object} new position of target element.
    */
   getPosition() {
-    const position = {
-      x: this.getDistanceX(),
-      y: this.getDistanceY(),
+    const clientRect = this.target.getBoundingClientRect();
+    const positionX = clientRect.left + document.body.scrollLeft;
+    const positionY = clientRect.top + document.body.scrollTop;
+    this.targetPosY = positionY;
+    return {
+      left: this.offsetPositionX(positionX),
+      top: this.offsetPositionY(positionY),
     };
-    if (this.debug) console.log(position, 'is new position of reference.');
-    return position;
   }
 
   /**
@@ -146,101 +151,94 @@ export default class Attacher {
    * @arg {Object} position of reference element.
    */
   setPosition(position) {
-    this.reference.style.transform =
-    `translate(${position.x}px, ${position.y}px)`;
+    this.reference.style.left = `${position.left}px`;
+    this.reference.style.top = `${position.top}px`;
   }
 
   /**
    * check if X axis is out of border.
+   * @arg {FLoat} position of target in x-axis.
    * @return {Float} X distance between reference and target.
    */
-  getDistanceX() {
-    const targetCenterDistanceX = this.target.offsetWidth / 2;
-    const targetPosX = this.target.offsetLeft + targetCenterDistanceX;
-    const refCenterDistanceX = this.reference.offsetWidth / 2;
-    const referencePosX = this.reference.offsetLeft + refCenterDistanceX;
-    let distanceX = targetPosX - referencePosX;
+  offsetPositionX(position) {
+    const newPosition = position - (this.reference.offsetWidth / 2) +
+    (this.target.offsetWidth / 2);
     /**
      * Check if reference is out of boundary.
      */
-    const bodyWidth = document.body.clientWidth;
-    if (targetPosX + refCenterDistanceX + this.bPadding.x > bodyWidth) {
-      distanceX = this.reference.offsetLeft + this.reference.offsetWidth;
-      distanceX = bodyWidth - distanceX - this.bPadding.x;
-      if (this.debug) console.warn('Element bleeds from right.');
-    } else if (0 > targetPosX - refCenterDistanceX - this.bPadding.x) {
-      distanceX += refCenterDistanceX - targetPosX + this.bPadding.x;
-      if (this.debug) console.warn('Element bleeds from left.');
-    }
-    return distanceX;
+    // const bodyWidth = document.body.clientWidth;
+    // if (targetPosX + refCenterDistanceX + this.bPadding.left > bodyWidth) {
+    //   distanceX = this.reference.offsetLeft + this.reference.offsetWidth;
+    //   distanceX = bodyWidth - distanceX - this.bPadding.left;
+    //   if (this.debug) console.warn('Element bleeds from right.');
+    // } else if (0 > targetPosX - refCenterDistanceX - this.bPadding.left) {
+    //   distanceX += refCenterDistanceX - targetPosX + this.bPadding.left;
+    //   if (this.debug) console.warn('Element bleeds from left.');
+    // }
+    return newPosition;
   }
 
   /**
    * Calculate Y distance first.
    * Check if Y distance is out of boundary.
    * If out of boundary. Recalculate Y distance.
+   * @arg {Float} position of target in y-axis.
    * @return {Float} Y distance between reference and target.
    */
-  getDistanceY() {
-    let distanceY = this.calculateDistanceY();
-    switch (this.checkBoundaryY(distanceY)) {
+  offsetPositionY(position) {
+    let newPosition = this.repositionPivotY(position);
+    switch (this.checkBleedingY(newPosition)) {
       case 'top':
-        distanceY = this.calculateDistanceY('bottom');
+        newPosition = this.repositionPivotY(position, 'bottom');
         break;
       case 'bottom':
-        distanceY = this.calculateDistanceY('top');
+        newPosition = this.repositionPivotY(position, 'top');
         break;
     }
-    return distanceY;
+    return newPosition;
   }
 
   /**
   * Calculate position priority of reference element.
+  * @arg {Float} position of target in y-axis.
   * @arg {String} posPriority position priority.
   * @return {Float} Y distance between reference and target.
    */
-  calculateDistanceY(posPriority = this.posPriority) {
-    let targetPosY = 0;
-    let referencePosY = 0;
+  repositionPivotY(position, posPriority = this.posPriority) {
+    let newPosition = 0;
     switch (posPriority) {
       case 'center':
-        targetPosY =
-        this.target.offsetTop + (this.target.offsetHeight / 2);
-        referencePosY = this.reference.offsetTop +
-        (this.reference.offsetHeight / 2);
+        newPosition = position;
         break;
       case 'top':
-        targetPosY = this.target.offsetTop;
-        referencePosY = this.reference.offsetTop + this.reference.offsetHeight +
-        this.offset.y;
+        newPosition = position - this.reference.offsetHeight -
+        this.offset.top;
         break;
       case 'bottom':
-        targetPosY = this.target.offsetTop + this.target.offsetHeight +
-        this.offset.y;
-        referencePosY = this.reference.offsetTop;
+        newPosition = position + this.target.offsetHeight + this.offset.top;
         break;
     }
-    return targetPosY - referencePosY;
+    return newPosition;
   }
 
   /**
-   * Check if reference is out-of-bounds in Y axis.
+   * Check if target position is out-of-bounds in y-axis.
+   * @arg {Float} position of target in y-axis.
    * @return {Boolean | String} the bleeding position of reference.
    * false for no bleeding.
    */
-  checkBoundaryY() {
+  checkBleedingY(position) {
     const topBoundary = document.body.scrollTop;
-    const refTopBoundary = this.target.offsetTop -
-    this.reference.offsetHeight - this.offset.y - this.bPadding.y;
+    const refTopBoundary = position - this.reference.offsetHeight -
+    this.bPadding.top;
     if (topBoundary >= refTopBoundary ) {
       if (this.debug) console.warn('Reference bleeds from top.');
       this.forcedPosPriority = 'bottom';
       return 'top';
     }
     const bottomBoundary = topBoundary + document.body.clientHeight;
-    const refBottomBoundary = this.target.offsetTop +
-    this.target.offsetHeight + this.reference.offsetHeight +
-    this.offset.y + this.bPadding.y;
+    const refBottomBoundary = position + this.reference.offsetHeight +
+    this.bPadding.top;
     if (refBottomBoundary > bottomBoundary) {
       if (this.debug) console.warn('Reference bleeds from bottom.');
       this.forcedPosPriority = 'top';
