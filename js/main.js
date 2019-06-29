@@ -49,11 +49,19 @@ export default class Attacher {
    * Listen document scroll event to recalculate reference position.
    */
   init() {
+    console.log('attacher component created.', this);
     this.reference.style.position = 'absolute';
     this.reference.style.zIndex = 1;
     this.reference.style.left = 0;
     this.reference.style.bottom = 0;
-    if (this.debug) console.log('attacher component created.', this);
+    if (this.debug) {
+      window.attacherDebug = () => {
+        return {
+          window: getEventListeners(window),
+          document: getEventListeners(document),
+        };
+      };
+    }
   }
 
   /**
@@ -61,25 +69,25 @@ export default class Attacher {
    * @arg {Element} target could be a new target element.
    */
   bind(target) {
+    if (this.debug) console.log(`Attacher bind method fired.`);
     this.target = target;
     this.refresh();
     setTimeout(() => {
       this.reference.style.transition = `${this.transition}s`;
     }, 10);
     this.startWatch();
-    if (this.debug) console.log(`Attacher bind method fired. `, this);
   }
 
   /**
    * Unbinds reference element from target element.
    */
   unbind() {
+    if (this.debug) console.log(`Attacher unbind method fired.`);
     this.reference.style.transition = '';
     this.reference.style.left = '0';
     this.reference.style.top = '0';
     this.target = undefined;
     this.stopWatch();
-    if (this.debug) console.log(`Attacher unbind method fired. `, this);
   }
 
   /**
@@ -99,6 +107,7 @@ export default class Attacher {
    * Listen document scroll change.
    */
   startWatch() {
+    if (this.eventListenersCreated) return;
     document.addEventListener('scroll', this.scrollWatcher = (e) => {
       if (this.forcedPosPriority ==
         this.checkBleedingY(this.targetPosY)) {
@@ -119,6 +128,7 @@ export default class Attacher {
         if (this.debug) console.warn('Document resized.');
       }, 10);
     });
+    this.eventListenersCreated = true;
     if (this.debug) console.warn('attacher started watching.');
   }
 
@@ -128,6 +138,7 @@ export default class Attacher {
   stopWatch() {
     document.removeEventListener('scroll', this.scrollWatcher);
     window.removeEventListener('resize', this.resizeWatcher);
+    this.eventListenersCreated = false;
     if (this.debug) console.warn('attacher stopped watching.');
   }
 

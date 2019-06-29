@@ -1,11 +1,11 @@
 {
   "name": "attacher",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "",
   "main": "./dist/bundle.js",
   "scripts": {
     "start": "rollup -c -w --environment BUILDMODE:dev",
-    "prod": "rollup -c -w --environment BUILDMODE:prod"
+    "prod": "rollup -c --environment BUILDMODE:prod"
   },
   "author": "",
   "license": "ISC",

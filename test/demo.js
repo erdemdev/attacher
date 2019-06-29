@@ -89,11 +89,20 @@ function () {
   _createClass(Attacher, [{
     key: "init",
     value: function init() {
+      console.log('attacher component created.', this);
       this.reference.style.position = 'absolute';
       this.reference.style.zIndex = 1;
       this.reference.style.left = 0;
       this.reference.style.bottom = 0;
-      if (this.debug) console.log('attacher component created.', this);
+
+      if (this.debug) {
+        window.attacherDebug = function () {
+          return {
+            window: getEventListeners(window),
+            document: getEventListeners(document)
+          };
+        };
+      }
     }
     /**
      * Binds reference element to target element.
@@ -105,13 +114,13 @@ function () {
     value: function bind(target) {
       var _this = this;
 
+      if (this.debug) console.log("Attacher bind method fired.");
       this.target = target;
       this.refresh();
       setTimeout(function () {
         _this.reference.style.transition = "".concat(_this.transition, "s");
       }, 10);
       this.startWatch();
-      if (this.debug) console.log("Attacher bind method fired. ", this);
     }
     /**
      * Unbinds reference element from target element.
@@ -120,12 +129,12 @@ function () {
   }, {
     key: "unbind",
     value: function unbind() {
+      if (this.debug) console.log("Attacher unbind method fired.");
       this.reference.style.transition = '';
       this.reference.style.left = '0';
       this.reference.style.top = '0';
       this.target = undefined;
       this.stopWatch();
-      if (this.debug) console.log("Attacher unbind method fired. ", this);
     }
     /**
      * Refresh position of reference element.
@@ -153,6 +162,7 @@ function () {
     value: function startWatch() {
       var _this2 = this;
 
+      if (this.eventListenersCreated) return;
       document.addEventListener('scroll', this.scrollWatcher = function (e) {
         if (_this2.forcedPosPriority == _this2.checkBleedingY(_this2.targetPosY)) {
           return;
@@ -177,6 +187,7 @@ function () {
           if (_this2.debug) console.warn('Document resized.');
         }, 10);
       });
+      this.eventListenersCreated = true;
       if (this.debug) console.warn('attacher started watching.');
     }
     /**
@@ -188,6 +199,7 @@ function () {
     value: function stopWatch() {
       document.removeEventListener('scroll', this.scrollWatcher);
       window.removeEventListener('resize', this.resizeWatcher);
+      this.eventListenersCreated = false;
       if (this.debug) console.warn('attacher stopped watching.');
     }
     /**
@@ -357,6 +369,5 @@ for (i; i < targets.length; i++) {
   target.addEventListener('click', function (e) {
     e.preventDefault();
     attacher.bind(e.target);
-    console.log(e);
   });
 }
