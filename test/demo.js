@@ -210,9 +210,8 @@ function () {
   }, {
     key: "getPosition",
     value: function getPosition() {
-      var clientRect = this.target.getBoundingClientRect();
-      var positionX = this.offsetPositionX(clientRect.left + document.body.scrollLeft);
-      var positionY = this.offsetPositionY(clientRect.top + document.body.scrollTop);
+      var positionX = this.offsetPositionX(this.target.offsetLeft);
+      var positionY = this.offsetPositionY(this.target.offsetTop);
       this.targetPosY = positionY;
       return {
         left: positionX,
@@ -322,7 +321,7 @@ function () {
   }, {
     key: "checkBleedingY",
     value: function checkBleedingY(position) {
-      var topBoundary = document.body.scrollTop;
+      var topBoundary = window.scrollY;
       var refTopBoundary = position - this.bPadding.top;
 
       if (topBoundary >= refTopBoundary) {

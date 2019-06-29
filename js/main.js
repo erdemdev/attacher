@@ -147,11 +147,10 @@ export default class Attacher {
    * @return {Object} new position of target element.
    */
   getPosition() {
-    const clientRect = this.target.getBoundingClientRect();
     const positionX =
-    this.offsetPositionX(clientRect.left + document.body.scrollLeft);
+    this.offsetPositionX(this.target.offsetLeft);
     const positionY =
-    this.offsetPositionY(clientRect.top + document.body.scrollTop);
+    this.offsetPositionY(this.target.offsetTop);
     this.targetPosY = positionY;
     return {
       left: positionX,
@@ -242,7 +241,7 @@ export default class Attacher {
    * false for no bleeding.
    */
   checkBleedingY(position) {
-    const topBoundary = document.body.scrollTop;
+    const topBoundary = window.scrollY;
     const refTopBoundary = position - this.bPadding.top;
     if (topBoundary >= refTopBoundary ) {
       if (this.debug) console.warn('Reference bleeds from top.');
