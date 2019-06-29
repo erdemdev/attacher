@@ -59,7 +59,7 @@ function () {
         _ref$bPadding = _ref.bPadding,
         bPadding = _ref$bPadding === void 0 ? {
       left: 20,
-      top: 20
+      top: 50
     } : _ref$bPadding,
         _ref$refreshSeconds = _ref.refreshSeconds,
         refreshSeconds = _ref$refreshSeconds === void 0 ? .2 : _ref$refreshSeconds;
@@ -188,7 +188,7 @@ function () {
     key: "stopWatch",
     value: function stopWatch() {
       document.removeEventListener('scroll', this.scrollWatcher);
-      document.removeEventListener('resize', this.resizeWatcher);
+      window.removeEventListener('resize', this.resizeWatcher);
       if (this.debug) console.warn('attacher stopped watching.');
     }
     /**

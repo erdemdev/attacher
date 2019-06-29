@@ -26,7 +26,7 @@ export default class Attacher {
     posPriority = 'top',
     transition = 1,
     offset = {left: 0, top: 10},
-    bPadding = {left: 20, top: 20},
+    bPadding = {left: 20, top: 50},
     refreshSeconds = .2,
   }) {
     this.reference = reference;
@@ -128,7 +128,7 @@ export default class Attacher {
    */
   stopWatch() {
     document.removeEventListener('scroll', this.scrollWatcher);
-    document.removeEventListener('resize', this.resizeWatcher);
+    window.removeEventListener('resize', this.resizeWatcher);
     if (this.debug) console.warn('attacher stopped watching.');
   }
 
