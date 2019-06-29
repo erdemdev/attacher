@@ -4,9 +4,12 @@ body {
   padding-bottom: 5rem;
   overflow-x: hidden; }
 
-h1 {
-  color: white;
-  padding: 0 2rem; }
+.meta {
+  padding: 0 2rem;
+  color: white; }
+  @media only screen and (max-width: 500px) {
+    .meta {
+      text-align: center; } }
 
 .target {
   cursor: pointer; }
@@ -62,13 +65,13 @@ h1 {
     text-align: center;
     width: 100%; }
 
-p {
+.text {
   font-weight: 500;
   color: #e0e0e0;
   width: 90%;
   margin: 5rem auto 10rem;
-  text-shadow: 1px 1px 0px #e01818; }
-  p a {
+  text-shadow: 1px 1px 0px #c91616; }
+  .text a {
     color: white;
     font-weight: bold; }
 

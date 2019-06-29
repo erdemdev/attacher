@@ -62,9 +62,14 @@ function () {
       top: 50
     } : _ref$bPadding,
         _ref$refreshSeconds = _ref.refreshSeconds,
-        refreshSeconds = _ref$refreshSeconds === void 0 ? .2 : _ref$refreshSeconds;
+        refreshSeconds = _ref$refreshSeconds === void 0 ? .5 : _ref$refreshSeconds;
 
     _classCallCheck(this, Attacher);
+
+    if (debug) console.warn('attacher component created.', this);
+    /**
+     * Set up global properties.
+     */
 
     this.reference = reference;
     this.target = target;
@@ -76,40 +81,27 @@ function () {
     this.forcedPosPriority = false;
     this.refreshTimer = null;
     this.refreshSeconds = refreshSeconds;
-    this.init();
+    /**
+     * Set up reference element's styles.
+     */
+
+    this.reference.style.position = 'absolute';
+    this.reference.style.zIndex = 1;
+    this.reference.style.left = 0;
+    this.reference.style.bottom = 0;
+    /**
+     * Bind reference to target if target exists.
+     */
+
     if (target) this.bind(target);
   }
   /**
-   * Set up reference element styles.
-   * Listen window resize event to refresh attacher.
-   * Listen document scroll event to recalculate reference position.
+   * Binds reference element to target element.
+   * @arg {Element} target could be a new target element.
    */
 
 
   _createClass(Attacher, [{
-    key: "init",
-    value: function init() {
-      console.log('attacher component created.', this);
-      this.reference.style.position = 'absolute';
-      this.reference.style.zIndex = 1;
-      this.reference.style.left = 0;
-      this.reference.style.bottom = 0;
-
-      if (this.debug) {
-        window.attacherDebug = function () {
-          return {
-            window: getEventListeners(window),
-            document: getEventListeners(document)
-          };
-        };
-      }
-    }
-    /**
-     * Binds reference element to target element.
-     * @arg {Element} target could be a new target element.
-     */
-
-  }, {
     key: "bind",
     value: function bind(target) {
       var _this = this;
@@ -119,7 +111,7 @@ function () {
       this.refresh();
       setTimeout(function () {
         _this.reference.style.transition = "".concat(_this.transition, "s");
-      }, 10);
+      }, 100);
       this.startWatch();
     }
     /**
@@ -162,30 +154,48 @@ function () {
     value: function startWatch() {
       var _this2 = this;
 
+      /**
+       * Check if event listeners assigned.
+       */
       if (this.eventListenersCreated) return;
-      document.addEventListener('scroll', this.scrollWatcher = function (e) {
+      /**
+       * Refresh reference element when the user scrolls the page.
+       */
+
+      document.addEventListener('scroll', this.scrollWatcher = function () {
+        if (_this2.checkBleedingTimer) return;
+
         if (_this2.forcedPosPriority == _this2.checkBleedingY(_this2.targetPosY)) {
           return;
         }
-        if (_this2.debug) console.warn('Refresh requested.');
-        clearTimeout(_this2.refreshTimer);
-        _this2.refreshTimer = setTimeout(function () {
+        if (_this2.debug) console.log('Refresh requested.');
+        setTimeout(function () {
+          _this2.checkBleedingTimer = false;
+
           _this2.refresh();
 
           if (_this2.debug) console.warn('Refreshed.');
         }, _this2.refreshSeconds * 1000);
+        _this2.checkBleedingTimer = true;
       }, {
         passive: true
       });
+      /**
+       * Refresh when window object resized by the user.
+       */
+
       window.addEventListener('resize', this.resizeWatcher = function () {
+        if (_this2.debug) console.warn('Document resized.');
         _this2.reference.style.display = 'none';
+        _this2.reference.style.transition = '';
         setTimeout(function () {
           _this2.reference.style.display = '';
 
           _this2.refresh();
-
-          if (_this2.debug) console.warn('Document resized.');
-        }, 10);
+        }, 100);
+        setTimeout(function () {
+          _this2.reference.style.transition = "".concat(_this2.transition, "s");
+        }, 200);
       });
       this.eventListenersCreated = true;
       if (this.debug) console.warn('attacher started watching.');
@@ -246,12 +256,12 @@ function () {
       var bodyWidth = document.body.clientWidth;
 
       if (newPosition + this.reference.offsetWidth + this.bPadding.left > bodyWidth) {
-        if (this.debug) console.warn('Reference bleeds from right.');
+        if (this.debug) console.log('Reference bleeds from right.');
         return bodyWidth - this.reference.offsetWidth - this.bPadding.left;
       }
 
       if (newPosition - this.bPadding.left < 0) {
-        if (this.debug) console.warn('Reference bleeds from left.');
+        if (this.debug) console.log('Reference bleeds from left.');
         return 0 + this.bPadding.left;
       }
 
@@ -325,7 +335,7 @@ function () {
       var refTopBoundary = position - this.bPadding.top;
 
       if (topBoundary >= refTopBoundary) {
-        if (this.debug) console.warn('Reference bleeds from top.');
+        if (this.debug) console.log('Reference bleeds from top.');
         this.forcedPosPriority = 'bottom';
         return 'top';
       }
@@ -334,7 +344,7 @@ function () {
       var refBottomBoundary = position + this.reference.offsetHeight + this.bPadding.top;
 
       if (refBottomBoundary > bottomBoundary) {
-        if (this.debug) console.warn('Reference bleeds from bottom.');
+        if (this.debug) console.log('Reference bleeds from bottom.');
         this.forcedPosPriority = 'top';
         return 'bottom';
       }

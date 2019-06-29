@@ -27,8 +27,12 @@ export default class Attacher {
     transition = 1,
     offset = {left: 0, top: 10},
     bPadding = {left: 20, top: 50},
-    refreshSeconds = .2,
+    refreshSeconds = .5,
   }) {
+    if (debug) console.warn('attacher component created.', this);
+    /**
+     * Set up global properties.
+     */
     this.reference = reference;
     this.target = target;
     this.debug = debug;
@@ -39,29 +43,17 @@ export default class Attacher {
     this.forcedPosPriority = false;
     this.refreshTimer = null;
     this.refreshSeconds = refreshSeconds;
-    this.init();
-    if (target) this.bind(target);
-  }
-
-  /**
-   * Set up reference element styles.
-   * Listen window resize event to refresh attacher.
-   * Listen document scroll event to recalculate reference position.
-   */
-  init() {
-    console.log('attacher component created.', this);
+    /**
+     * Set up reference element's styles.
+     */
     this.reference.style.position = 'absolute';
     this.reference.style.zIndex = 1;
     this.reference.style.left = 0;
     this.reference.style.bottom = 0;
-    if (this.debug) {
-      window.attacherDebug = () => {
-        return {
-          window: getEventListeners(window),
-          document: getEventListeners(document),
-        };
-      };
-    }
+    /**
+     * Bind reference to target if target exists.
+     */
+    if (target) this.bind(target);
   }
 
   /**
@@ -74,7 +66,7 @@ export default class Attacher {
     this.refresh();
     setTimeout(() => {
       this.reference.style.transition = `${this.transition}s`;
-    }, 10);
+    }, 100);
     this.startWatch();
   }
 
@@ -107,26 +99,41 @@ export default class Attacher {
    * Listen document scroll change.
    */
   startWatch() {
+    /**
+     * Check if event listeners assigned.
+     */
     if (this.eventListenersCreated) return;
-    document.addEventListener('scroll', this.scrollWatcher = (e) => {
+    /**
+     * Refresh reference element when the user scrolls the page.
+     */
+    document.addEventListener('scroll', this.scrollWatcher = () => {
+      if (this.checkBleedingTimer) return;
       if (this.forcedPosPriority ==
         this.checkBleedingY(this.targetPosY)) {
         return;
       };
-      if (this.debug) console.warn('Refresh requested.');
-      clearTimeout(this.refreshTimer);
-      this.refreshTimer = setTimeout(() => {
+      if (this.debug) console.log('Refresh requested.');
+      setTimeout(() => {
+        this.checkBleedingTimer = false;
         this.refresh();
         if (this.debug) console.warn('Refreshed.');
       }, this.refreshSeconds * 1000);
+      this.checkBleedingTimer = true;
     }, {passive: true});
+    /**
+     * Refresh when window object resized by the user.
+     */
     window.addEventListener('resize', this.resizeWatcher = () => {
+      if (this.debug) console.warn('Document resized.');
       this.reference.style.display = 'none';
+      this.reference.style.transition = '';
       setTimeout(() => {
         this.reference.style.display = '';
         this.refresh();
-        if (this.debug) console.warn('Document resized.');
-      }, 10);
+      }, 100);
+      setTimeout(() => {
+        this.reference.style.transition = `${this.transition}s`;
+      }, 200);
     });
     this.eventListenersCreated = true;
     if (this.debug) console.warn('attacher started watching.');
@@ -181,11 +188,11 @@ export default class Attacher {
     const bodyWidth = document.body.clientWidth;
     if (newPosition + this.reference.offsetWidth +
       this.bPadding.left > bodyWidth) {
-      if (this.debug) console.warn('Reference bleeds from right.');
+      if (this.debug) console.log('Reference bleeds from right.');
       return bodyWidth - this.reference.offsetWidth - this.bPadding.left;
     }
     if (newPosition - this.bPadding.left < 0) {
-      if (this.debug) console.warn('Reference bleeds from left.');
+      if (this.debug) console.log('Reference bleeds from left.');
       return 0 + this.bPadding.left;
     }
     return newPosition;
@@ -244,7 +251,7 @@ export default class Attacher {
     const topBoundary = window.scrollY;
     const refTopBoundary = position - this.bPadding.top;
     if (topBoundary >= refTopBoundary ) {
-      if (this.debug) console.warn('Reference bleeds from top.');
+      if (this.debug) console.log('Reference bleeds from top.');
       this.forcedPosPriority = 'bottom';
       return 'top';
     }
@@ -252,7 +259,7 @@ export default class Attacher {
     const refBottomBoundary = position + this.reference.offsetHeight +
     this.bPadding.top;
     if (refBottomBoundary > bottomBoundary) {
-      if (this.debug) console.warn('Reference bleeds from bottom.');
+      if (this.debug) console.log('Reference bleeds from bottom.');
       this.forcedPosPriority = 'top';
       return 'bottom';
     }

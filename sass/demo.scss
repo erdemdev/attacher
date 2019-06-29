@@ -9,9 +9,13 @@ body {
   overflow-x: hidden;
 }
 
-h1 {
-  color: white;
+.meta {
   padding: 0 2rem;
+  color: white;
+
+  @media only screen and (max-width: 500px) {
+    text-align: center;
+  }
 }
 
 .target {
@@ -83,12 +87,12 @@ h1 {
   }
 }
 
-p {
+.text {
   font-weight: 500;
   color:  rgb(224, 224, 224);
   width: 90%;
   margin: 5rem auto 10rem;
-  text-shadow: 1px 1px 0px rgb(224, 24, 24);
+  text-shadow: 1px 1px 0px darken($red, 5%);
 
   a {
     color: rgb(255, 255, 255);
