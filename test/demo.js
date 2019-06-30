@@ -254,8 +254,9 @@ function () {
   }, {
     key: "getPosition",
     value: function getPosition() {
-      var positionX = this.offsetPositionX(this.target.offsetLeft);
-      var positionY = this.offsetPositionY(this.target.offsetTop);
+      var coords = this.target.getBoundingClientRect();
+      var positionX = this.offsetPositionX(coords.left + window.scrollX);
+      var positionY = this.offsetPositionY(coords.top + window.scrollY);
       this.targetPosY = positionY;
       return {
         left: positionX,

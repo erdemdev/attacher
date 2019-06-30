@@ -180,10 +180,11 @@ export default class Attacher {
    * @return {Object} new position of target element.
    */
   getPosition() {
+    const coords = this.target.getBoundingClientRect();
     const positionX =
-    this.offsetPositionX(this.target.offsetLeft);
+    this.offsetPositionX(coords.left + window.scrollX);
     const positionY =
-    this.offsetPositionY(this.target.offsetTop);
+    this.offsetPositionY(coords.top + window.scrollY);
     this.targetPosY = positionY;
     return {
       left: positionX,
