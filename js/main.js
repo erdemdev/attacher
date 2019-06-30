@@ -25,8 +25,8 @@ export default class Attacher {
     debug = false,
     posPriority = 'top',
     transition = 1,
-    offset = {left: 0, top: 10},
-    bPadding = {left: 20, top: 50},
+    offset = {inner: 10, outer: 20},
+    bPadding = {left: 25, top: 50},
     refreshSeconds = .5,
   }) {
     if (debug) console.warn('attacher component created.', this);
@@ -113,6 +113,8 @@ export default class Attacher {
     window.addEventListener('resize', this.resizeWatcher = () => {
       if (this.debug) console.warn('Document resized.');
       this.reference.style.display = 'none';
+      this.reference.style.top = '';
+      this.reference.style.left = '';
       this.reference.style.transition = '';
       setTimeout(() => {
         this.reference.style.display = '';
@@ -211,13 +213,13 @@ export default class Attacher {
      */
     const bodyWidth = window.innerWidth;
     if (newPosition + this.reference.offsetWidth +
-      this.bPadding.left > bodyWidth) {
+      this.offset.outer > bodyWidth) {
       if (this.debug) console.log('Reference bleeds from right.');
-      return bodyWidth - this.reference.offsetWidth - this.bPadding.left;
+      return bodyWidth - this.reference.offsetWidth - this.offset.outer;
     }
-    if (newPosition - this.bPadding.left < 0) {
+    if (newPosition - this.offset.outer < 0) {
       if (this.debug) console.log('Reference bleeds from left.');
-      return 0 + this.bPadding.left;
+      return 0 + this.offset.outer;
     }
     return newPosition;
   }
@@ -256,10 +258,10 @@ export default class Attacher {
         break;
       case 'top':
         newPosition = position - this.reference.offsetHeight -
-        this.offset.top;
+        this.offset.inner;
         break;
       case 'bottom':
-        newPosition = position + this.target.offsetHeight + this.offset.top;
+        newPosition = position + this.target.offsetHeight + this.offset.inner;
         break;
     }
     return newPosition;

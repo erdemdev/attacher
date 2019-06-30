@@ -53,12 +53,12 @@ function () {
         transition = _ref$transition === void 0 ? 1 : _ref$transition,
         _ref$offset = _ref.offset,
         offset = _ref$offset === void 0 ? {
-      left: 0,
-      top: 10
+      inner: 10,
+      outer: 20
     } : _ref$offset,
         _ref$bPadding = _ref.bPadding,
         bPadding = _ref$bPadding === void 0 ? {
-      left: 20,
+      left: 25,
       top: 50
     } : _ref$bPadding,
         _ref$refreshSeconds = _ref.refreshSeconds,
@@ -173,6 +173,8 @@ function () {
       window.addEventListener('resize', this.resizeWatcher = function () {
         if (_this2.debug) console.warn('Document resized.');
         _this2.reference.style.display = 'none';
+        _this2.reference.style.top = '';
+        _this2.reference.style.left = '';
         _this2.reference.style.transition = '';
         setTimeout(function () {
           _this2.reference.style.display = '';
@@ -287,14 +289,14 @@ function () {
 
       var bodyWidth = window.innerWidth;
 
-      if (newPosition + this.reference.offsetWidth + this.bPadding.left > bodyWidth) {
+      if (newPosition + this.reference.offsetWidth + this.offset.outer > bodyWidth) {
         if (this.debug) console.log('Reference bleeds from right.');
-        return bodyWidth - this.reference.offsetWidth - this.bPadding.left;
+        return bodyWidth - this.reference.offsetWidth - this.offset.outer;
       }
 
-      if (newPosition - this.bPadding.left < 0) {
+      if (newPosition - this.offset.outer < 0) {
         if (this.debug) console.log('Reference bleeds from left.');
-        return 0 + this.bPadding.left;
+        return 0 + this.offset.outer;
       }
 
       return newPosition;
@@ -343,11 +345,11 @@ function () {
           break;
 
         case 'top':
-          newPosition = position - this.reference.offsetHeight - this.offset.top;
+          newPosition = position - this.reference.offsetHeight - this.offset.inner;
           break;
 
         case 'bottom':
-          newPosition = position + this.target.offsetHeight + this.offset.top;
+          newPosition = position + this.target.offsetHeight + this.offset.inner;
           break;
       }
 
