@@ -11,6 +11,11 @@ import Attacher from './main';
 const reference = document.querySelector('.reference');
 const targets = document.querySelectorAll('.target');
 
+document.addEventListener('keyup', (e) => {
+  e.preventDefault();
+  reference.classList.toggle('reference--bleed');
+});
+
 let attacher = attacher = new Attacher(reference, {
   target: targets[0],
   posPriority: 'top',

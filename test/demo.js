@@ -397,6 +397,10 @@ function () {
  */
 var reference = document.querySelector('.reference');
 var targets = document.querySelectorAll('.target');
+document.addEventListener('keyup', function (e) {
+  e.preventDefault();
+  reference.classList.toggle('reference--bleed');
+});
 var attacher = attacher = new Attacher(reference, {
   target: targets[0],
   posPriority: 'top',
