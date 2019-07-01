@@ -395,7 +395,7 @@ function () {
 /**
  * Import Styles
  */
-var reference = document.querySelector('.reference');
+var reference = document.querySelector('.reference--interactive');
 var targets = document.querySelectorAll('.target');
 document.addEventListener('keyup', function (e) {
   e.preventDefault();
@@ -405,6 +405,9 @@ var attacher = attacher = new Attacher(reference, {
   target: targets[0],
   posPriority: 'top',
   debug: true
+});
+new Attacher(document.querySelector('.reference--static'), {
+  target: document.querySelector('.target--static')
 });
 reference.addEventListener('click', function (e) {
   e.preventDefault();

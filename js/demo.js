@@ -8,7 +8,7 @@ import '../sass/demo.scss';
  */
 import Attacher from './main';
 
-const reference = document.querySelector('.reference');
+const reference = document.querySelector('.reference--interactive');
 const targets = document.querySelectorAll('.target');
 
 document.addEventListener('keyup', (e) => {
@@ -20,6 +20,10 @@ let attacher = attacher = new Attacher(reference, {
   target: targets[0],
   posPriority: 'top',
   debug: true,
+});
+
+new Attacher(document.querySelector('.reference--static'), {
+  target: document.querySelector('.target--static'),
 });
 
 reference.addEventListener('click', (e) => {
