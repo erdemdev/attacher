@@ -43,11 +43,6 @@ export default class Attacher {
     this.forcedPosPriority = false;
     this.refreshSeconds = refreshSeconds;
     /**
-     * Set up reference element's styles.
-     */
-    this.reference.style.position = 'absolute';
-    this.reference.style.zIndex = 1;
-    /**
      * Bind reference to target if target exists.
      */
     if (target) this.bind(target);
@@ -58,8 +53,28 @@ export default class Attacher {
    * @arg {Element} target could be a new target element.
    */
   bind(target) {
-    if (this.debug) console.log(`Attacher bind method fired.`);
     this.target = target;
+    this.setStyles();
+    setTimeout(() => {
+      this.activate();
+    }, 100);
+    if (this.debug) console.log(`Attacher bind method fired.`);
+  }
+
+  /**
+   * Unbinds reference element from target element.
+   */
+  unbind() {
+    if (this.debug) console.log(`Attacher unbind method fired.`);
+    this.resetStyles();
+    this.target = undefined;
+    this.deactivate();
+  }
+
+  /**
+   * Make reference visible. Start watching.
+   */
+  activate() {
     this.refresh();
     setTimeout(() => {
       this.reference.style.transition = `${this.transition}s`;
@@ -68,19 +83,36 @@ export default class Attacher {
   }
 
   /**
-   * Unbinds reference element from target element.
+   * Make reference invisible. Stop watching.
    */
-  unbind() {
-    if (this.debug) console.log(`Attacher unbind method fired.`);
+  deactivate() {
     this.reference.style.transition = '';
-    this.reference.style.left = '';
-    this.reference.style.top = '';
-    this.target = undefined;
+    this.reference.style.left = '-100%';
     this.stopWatch();
   }
 
   /**
+   * Set up reference element's styles.
+   */
+  setStyles() {
+    this.reference.style.position = 'absolute';
+    this.reference.style.zIndex = 1;
+  }
+
+  /**
+   * Clear reference element's styles.
+   */
+  resetStyles() {
+    this.reference.style.position = '';
+    this.reference.style.zIndex = '';
+    this.reference.style.transition = '';
+    this.reference.style.left = '';
+    this.reference.style.top = '';
+  }
+
+  /**
    * Refresh position of reference element.
+   * It is the function to reposition reference element.
    */
   refresh() {
     if (this.target == undefined) {
@@ -113,11 +145,10 @@ export default class Attacher {
     window.addEventListener('resize', this.resizeWatcher = () => {
       if (this.debug) console.warn('Document resized.');
       this.reference.style.display = 'none';
-      this.reference.style.top = '';
-      this.reference.style.left = '';
-      this.reference.style.transition = '';
+      this.resetStyles();
       setTimeout(() => {
         this.reference.style.display = '';
+        this.setStyles();
         this.refresh();
       }, 100);
       setTimeout(() => {

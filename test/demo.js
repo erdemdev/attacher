@@ -81,12 +81,6 @@ function () {
     this.forcedPosPriority = false;
     this.refreshSeconds = refreshSeconds;
     /**
-     * Set up reference element's styles.
-     */
-
-    this.reference.style.position = 'absolute';
-    this.reference.style.zIndex = 1;
-    /**
      * Bind reference to target if target exists.
      */
 
@@ -103,13 +97,12 @@ function () {
     value: function bind(target) {
       var _this = this;
 
-      if (this.debug) console.log("Attacher bind method fired.");
       this.target = target;
-      this.refresh();
+      this.setStyles();
       setTimeout(function () {
-        _this.reference.style.transition = "".concat(_this.transition, "s");
+        _this.activate();
       }, 100);
-      this.startWatch();
+      if (this.debug) console.log("Attacher bind method fired.");
     }
     /**
      * Unbinds reference element from target element.
@@ -119,14 +112,62 @@ function () {
     key: "unbind",
     value: function unbind() {
       if (this.debug) console.log("Attacher unbind method fired.");
-      this.reference.style.transition = '';
-      this.reference.style.left = '';
-      this.reference.style.top = '';
+      this.resetStyles();
       this.target = undefined;
+      this.deactivate();
+    }
+    /**
+     * Make reference visible. Start watching.
+     */
+
+  }, {
+    key: "activate",
+    value: function activate() {
+      var _this2 = this;
+
+      this.refresh();
+      setTimeout(function () {
+        _this2.reference.style.transition = "".concat(_this2.transition, "s");
+      }, 100);
+      this.startWatch();
+    }
+    /**
+     * Make reference invisible. Stop watching.
+     */
+
+  }, {
+    key: "deactivate",
+    value: function deactivate() {
+      this.reference.style.transition = '';
+      this.reference.style.left = '-100%';
       this.stopWatch();
     }
     /**
+     * Set up reference element's styles.
+     */
+
+  }, {
+    key: "setStyles",
+    value: function setStyles() {
+      this.reference.style.position = 'absolute';
+      this.reference.style.zIndex = 1;
+    }
+    /**
+     * Clear reference element's styles.
+     */
+
+  }, {
+    key: "resetStyles",
+    value: function resetStyles() {
+      this.reference.style.position = '';
+      this.reference.style.zIndex = '';
+      this.reference.style.transition = '';
+      this.reference.style.left = '';
+      this.reference.style.top = '';
+    }
+    /**
      * Refresh position of reference element.
+     * It is the function to reposition reference element.
      */
 
   }, {
@@ -149,7 +190,7 @@ function () {
   }, {
     key: "startWatch",
     value: function startWatch() {
-      var _this2 = this;
+      var _this3 = this;
 
       /**
        * Check if event listeners assigned.
@@ -160,9 +201,9 @@ function () {
        */
 
       document.addEventListener('scroll', this.scrollWatcher = function () {
-        if (!_this2.sleepMode) _this2.autoRefresh();
+        if (!_this3.sleepMode) _this3.autoRefresh();
 
-        _this2.switchToSleepMode();
+        _this3.switchToSleepMode();
       }, {
         passive: true
       });
@@ -171,18 +212,20 @@ function () {
        */
 
       window.addEventListener('resize', this.resizeWatcher = function () {
-        if (_this2.debug) console.warn('Document resized.');
-        _this2.reference.style.display = 'none';
-        _this2.reference.style.top = '';
-        _this2.reference.style.left = '';
-        _this2.reference.style.transition = '';
-        setTimeout(function () {
-          _this2.reference.style.display = '';
+        if (_this3.debug) console.warn('Document resized.');
+        _this3.reference.style.display = 'none';
 
-          _this2.refresh();
+        _this3.resetStyles();
+
+        setTimeout(function () {
+          _this3.reference.style.display = '';
+
+          _this3.setStyles();
+
+          _this3.refresh();
         }, 100);
         setTimeout(function () {
-          _this2.reference.style.transition = "".concat(_this2.transition, "s");
+          _this3.reference.style.transition = "".concat(_this3.transition, "s");
         }, 200);
       });
       this.eventListenersCreated = true;
@@ -195,7 +238,7 @@ function () {
   }, {
     key: "autoRefresh",
     value: function autoRefresh() {
-      var _this3 = this;
+      var _this4 = this;
 
       if (this.checkBleedingTimer) return;
 
@@ -204,11 +247,11 @@ function () {
       }
       if (this.debug) console.log('Refresh requested.');
       setTimeout(function () {
-        _this3.checkBleedingTimer = false;
+        _this4.checkBleedingTimer = false;
 
-        _this3.refresh();
+        _this4.refresh();
 
-        if (_this3.debug) console.log('Refreshed.');
+        if (_this4.debug) console.log('Refreshed.');
       }, this.refreshSeconds * 1000);
       this.checkBleedingTimer = true;
     }
@@ -395,24 +438,49 @@ function () {
 /**
  * Import Styles
  */
+/**
+ * Get reference and target elements.
+ */
+
 var reference = document.querySelector('.reference--interactive');
 var targets = document.querySelectorAll('.target');
-document.addEventListener('keyup', function (e) {
-  e.preventDefault();
-  reference.classList.toggle('reference--bleed');
-});
+/**
+ * Create interactive attacher example. (Only for demonstration.)
+ */
+
 var attacher = attacher = new Attacher(reference, {
   target: targets[0],
   posPriority: 'top',
   debug: true
 });
+/**
+ * Create static attacher example.
+ */
+
 new Attacher(document.querySelector('.reference--static'), {
   target: document.querySelector('.target--static')
 });
+/**
+ * Click and key events for debugging.
+ */
+
+var isVisible = true;
+document.addEventListener('keyup', function (e) {
+  e.preventDefault(); // Document reference bleeding test.
+
+  if (e.keyCode == 66) reference.classList.toggle('reference--bleed'); // Attacher activate/deactivate test.
+
+  if (e.keyCode == 32) {
+    isVisible ? attacher.deactivate() : attacher.activate();
+    isVisible = !isVisible;
+  }
+}); // Unbind Attacher
+
 reference.addEventListener('click', function (e) {
   e.preventDefault();
   attacher.unbind();
-});
+}); // Bind Attacher to clicked targets.
+
 var i = 0;
 
 for (i; i < targets.length; i++) {
