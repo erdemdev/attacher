@@ -80,6 +80,7 @@ function () {
     this.bPadding = bPadding;
     this.forcedPosPriority = false;
     this.refreshSeconds = refreshSeconds;
+    this.windowWidth = window.innerWidth;
     /**
      * Bind reference to target if target exists.
      */
@@ -212,6 +213,7 @@ function () {
        */
 
       window.addEventListener('resize', this.resizeWatcher = function () {
+        if (_this3.windowWidth == window.innerWidth) return;
         if (_this3.debug) console.warn('Document resized.');
         _this3.reference.style.display = 'none';
 
@@ -227,6 +229,8 @@ function () {
         setTimeout(function () {
           _this3.reference.style.transition = "".concat(_this3.transition, "s");
         }, 200);
+        _this3.windowWidth = window.innerWidth;
+        if (_this3.debug) console.log('new screen width set to default');
       });
       this.eventListenersCreated = true;
       if (this.debug) console.warn('attacher started watching.');
@@ -381,6 +385,7 @@ function () {
     key: "repositionPivotY",
     value: function repositionPivotY(position) {
       var posPriority = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this.posPriority;
+      console.log(position);
       var newPosition = 0;
 
       switch (posPriority) {

@@ -42,6 +42,7 @@ export default class Attacher {
     this.bPadding = bPadding;
     this.forcedPosPriority = false;
     this.refreshSeconds = refreshSeconds;
+    this.windowWidth = window.innerWidth;
     /**
      * Bind reference to target if target exists.
      */
@@ -143,6 +144,7 @@ export default class Attacher {
      * Refresh when window object resized by the user.
      */
     window.addEventListener('resize', this.resizeWatcher = () => {
+      if (this.windowWidth == window.innerWidth) return;
       if (this.debug) console.warn('Document resized.');
       this.reference.style.display = 'none';
       this.resetStyles();
@@ -154,6 +156,8 @@ export default class Attacher {
       setTimeout(() => {
         this.reference.style.transition = `${this.transition}s`;
       }, 200);
+      this.windowWidth = window.innerWidth;
+      if (this.debug) console.log('new screen width set to default');
     });
     this.eventListenersCreated = true;
     if (this.debug) console.warn('attacher started watching.');
@@ -283,6 +287,7 @@ export default class Attacher {
   * @return {Float} Y distance between reference and target.
    */
   repositionPivotY(position, posPriority = this.posPriority) {
+    console.log(position);
     let newPosition = 0;
     switch (posPriority) {
       case 'center':

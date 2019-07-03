@@ -6,7 +6,8 @@ $background: rgb(255, 146, 5);
 $shadow: 0px 10px 25px -15px black;
 
 html, body {
-  overflow: hidden visible;
+  overflow-x: hidden;
+  overflow-y: visible;
   position: relative;
 }
 
