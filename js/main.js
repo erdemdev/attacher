@@ -4,6 +4,11 @@
 import '../sass/main.scss';
 
 /**
+ * Import Helper Classes
+ */
+import zoomy from './zoomy';
+
+/**
  * @class Attacher
  */
 export default class Attacher {
@@ -28,6 +33,7 @@ export default class Attacher {
     offset = {inner: 10, outer: 20},
     bPadding = {left: 25, top: 50},
     refreshSeconds = .5,
+    touch = true,
   }) {
     if (debug) console.warn('attacher component created.', this);
     /**
@@ -78,9 +84,10 @@ export default class Attacher {
   activate() {
     this.refresh();
     setTimeout(() => {
-      this.reference.style.transition = `${this.transition}s`;
+      this.setTransitionStyle();
     }, 100);
     this.startWatch();
+    zoomy(this.reference);
   }
 
   /**
@@ -109,6 +116,14 @@ export default class Attacher {
     this.reference.style.transition = '';
     this.reference.style.left = '';
     this.reference.style.top = '';
+  }
+
+  /**
+   * Set reference's default transition
+   * @arg {Float} transition
+   */
+  setTransitionStyle(transition = this.transition) {
+    this.reference.style.transition = `${transition}s`;
   }
 
   /**
@@ -154,11 +169,14 @@ export default class Attacher {
         this.refresh();
       }, 100);
       setTimeout(() => {
-        this.reference.style.transition = `${this.transition}s`;
+        this.setTransitionStyle();
       }, 200);
       this.windowWidth = window.innerWidth;
       if (this.debug) console.log('new screen width set to default');
     });
+    /**
+     * Register touch events
+     */
     this.eventListenersCreated = true;
     if (this.debug) console.warn('attacher started watching.');
   }
@@ -287,7 +305,6 @@ export default class Attacher {
   * @return {Float} Y distance between reference and target.
    */
   repositionPivotY(position, posPriority = this.posPriority) {
-    console.log(position);
     let newPosition = 0;
     switch (posPriority) {
       case 'center':

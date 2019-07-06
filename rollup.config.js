@@ -1,7 +1,7 @@
 import resolve from 'rollup-plugin-node-resolve';
 import commonjs from 'rollup-plugin-commonjs';
 import babel from 'rollup-plugin-babel';
-import liveServer from 'rollup-plugin-live-server';
+import browsersync from 'rollup-plugin-browsersync'
 import { uglify } from "rollup-plugin-uglify";
 import postcss from 'rollup-plugin-postcss';
 import autoprefixer from 'autoprefixer';
@@ -32,12 +32,6 @@ export default {
       minimize: MODE == 'prod',
       sourceMap: MODE != 'prod'
     }),
-    MODE == 'dev' ? liveServer({
-      port: 1234,
-      root: "test",
-      file: "index.html",
-      open: true,
-      wait: 100
-    }) : ''
+    MODE == 'dev' ? browsersync({server: 'test'}) : ''
   ]
 };

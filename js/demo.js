@@ -17,10 +17,12 @@ const targets = document.querySelectorAll('.target');
 /**
  * Create interactive attacher example. (Only for demonstration.)
  */
-let attacher = attacher = new Attacher(reference, {
+const attacher = new Attacher(reference, {
   target: targets[0],
   posPriority: 'top',
+  transition: 0,
   debug: true,
+  touch: true,
 });
 
 /**
@@ -50,8 +52,7 @@ document.addEventListener('keyup', (e) => {
 
 // Unbind Attacher
 reference.addEventListener('click', (e) => {
-  e.preventDefault();
-  attacher.unbind();
+  /* attacher.unbind(); */
 });
 
 // Bind Attacher to clicked targets.
