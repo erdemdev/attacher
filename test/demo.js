@@ -2672,203 +2672,257 @@ if (typeof undefined$1 === 'function' && undefined$1.amd) {
 });
 
 /**
- * Zooming functions.
- * @param {Element} refElem
+ * Zoomy Class
  */
 
-function zoomy(refElem) {
-  var element = refElem;
-  var originalSize = {
-    width: 200,
-    height: 100
-  };
-  var current = {
-    x: 0,
-    y: 0,
-    z: 1,
-    zooming: false,
-    width: originalSize.width * 1,
-    height: originalSize.height * 1
-  };
-  var last = {
-    x: current.x,
-    y: current.y,
-    z: current.z
-  };
-  var lastEvent = undefined;
-  var fixHammerjsDeltaIssue = undefined;
-  var pinchZoomOrigin = undefined;
-  var pinchStart = {
-    x: undefined,
-    y: undefined
-  };
-  var hammertime = new hammer(element, {});
-  hammertime.get('pinch').set({
-    enable: true
-  });
-  hammertime.get('pan').set({
-    threshold: 0
-  });
-  hammertime.on('doubletap', function (e) {
-    var scaleFactor = 1;
+var Zoomy =
+/*#__PURE__*/
+function () {
+  /**
+   * @constructor
+   * @arg {Element} element
+   */
+  function Zoomy() {
+    var element = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;
 
-    if (current.zooming === false) {
-      current.zooming = true;
-    } else {
-      current.zooming = false;
-      scaleFactor = -scaleFactor;
+    _classCallCheck(this, Zoomy);
+
+    this.element = element;
+    this.originalSize = {
+      width: element.offsetWidth,
+      height: element.offsetHeight
+    };
+    this.current = {
+      x: 0,
+      y: 0,
+      z: 1,
+      zooming: false,
+      width: this.originalSize.width * 1,
+      height: this.originalSize.height * 1
+    };
+    this.last = {
+      x: this.current.x,
+      y: this.current.y,
+      z: this.current.z
+    };
+    this.lastEvent = undefined;
+    this.fixHammerjsDeltaIssue = undefined;
+    this.pinchZoomOrigin = undefined;
+    this.pinchStart = {
+      x: undefined,
+      y: undefined
+    };
+    this.hammertime = undefined;
+  }
+  /**
+   * Registers hammer-js event listeners.
+   */
+
+
+  _createClass(Zoomy, [{
+    key: "startWatch",
+    value: function startWatch() {
+      var _this = this;
+
+      this.hammertime = new hammer(this.element, {});
+      this.hammertime.get('pinch').set({
+        enable: true
+      });
+      this.hammertime.get('pan').set({
+        threshold: 10
+      });
+      this.hammertime.on('doubletap', this.doubleTapCallback = function (e) {
+        var scaleFactor = 1;
+
+        if (_this.current.zooming === false) {
+          _this.current.zooming = true;
+        } else {
+          _this.current.zooming = false;
+          scaleFactor = -scaleFactor;
+        }
+
+        _this.element.style.transition = '0.3s';
+        setTimeout(function () {
+          _this.element.style.transition = 'none';
+        }, 300);
+
+        var zoomOrigin = _this.getRelativePosition(_this.element, {
+          x: e.center.x,
+          y: e.center.y
+        }, _this.originalSize, _this.current.z);
+
+        var d = _this.scaleFrom(zoomOrigin, _this.current.z, _this.current.z + scaleFactor);
+
+        _this.current.x += d.x;
+        _this.current.y += d.y;
+        _this.current.z += d.z;
+        _this.last.x = _this.current.x;
+        _this.last.y = _this.current.y;
+        _this.last.z = _this.current.z;
+
+        _this.update();
+      });
+      this.hammertime.on('pan', this.panCallback = function (e) {
+        if (_this.lastEvent !== 'pan') {
+          _this.fixHammerjsDeltaIssue = {
+            x: e.deltaX,
+            y: e.deltaY
+          };
+        }
+
+        _this.current.x = _this.last.x + e.deltaX - _this.fixHammerjsDeltaIssue.x;
+        _this.current.y = _this.last.y + e.deltaY - _this.fixHammerjsDeltaIssue.y;
+        _this.lastEvent = 'pan';
+
+        _this.update();
+      });
+      this.hammertime.on('panend', this.panEndCallback = function () {
+        _this.last.x = _this.current.x;
+        _this.last.y = _this.current.y;
+        _this.lastEvent = 'panend';
+      });
+      this.hammertime.on('pinchstart', this.pinchStartCallback = function (e) {
+        _this.pinchStart.x = e.center.x + window.scrollX;
+        _this.pinchStart.y = e.center.y + window.scrollY;
+        _this.pinchZoomOrigin = _this.getRelativePosition(_this.element, {
+          x: _this.pinchStart.x,
+          y: _this.pinchStart.y
+        }, _this.originalSize, _this.current.z);
+        _this.lastEvent = 'pinchstart';
+      });
+      this.hammertime.on('pinch', this.pinchCallback = function (e) {
+        var d = _this.scaleFrom(_this.pinchZoomOrigin, _this.last.z, _this.last.z * e.scale);
+
+        _this.current.x = d.x + _this.last.x + e.deltaX;
+        _this.current.y = d.y + _this.last.y + e.deltaY;
+        _this.current.z = d.z + _this.last.z;
+        _this.lastEvent = 'pinch';
+
+        _this.update();
+      });
+      this.hammertime.on('pinchend', this.pinchEndCallback = function () {
+        _this.last.x = _this.current.x;
+        _this.last.y = _this.current.y;
+        _this.last.z = _this.current.z;
+        _this.lastEvent = 'pinchend';
+      });
     }
+    /**
+     * Unregisters hammer-js event listeners.
+     */
 
-    element.style.transition = '0.3s';
-    setTimeout(function () {
-      element.style.transition = 'none';
-    }, 300);
-    var zoomOrigin = getRelativePosition(element, {
-      x: e.center.x,
-      y: e.center.y
-    }, originalSize, current.z);
-    var d = scaleFrom(zoomOrigin, current.z, current.z + scaleFactor);
-    current.x += d.x;
-    current.y += d.y;
-    current.z += d.z;
-    last.x = current.x;
-    last.y = current.y;
-    last.z = current.z;
-    update();
-  });
-  hammertime.on('pan', function (e) {
-    if (lastEvent !== 'pan') {
-      fixHammerjsDeltaIssue = {
-        x: e.deltaX,
-        y: e.deltaY
+  }, {
+    key: "stopWatch",
+    value: function stopWatch() {
+      this.hammertime.off('doubletap');
+      this.hammertime.off('pan');
+      this.hammertime.off('panend');
+      this.hammertime.off('pinchstart');
+      this.hammertime.off('pinch');
+      this.hammertime.off('pinchend');
+    }
+    /**
+    * Final function to modify element.
+    */
+
+  }, {
+    key: "update",
+    value: function update() {
+      this.current.height = this.originalSize.height * this.current.z;
+      this.current.width = this.originalSize.width * this.current.z;
+      this.element.style.transform = "translate3d(".concat(this.current.x, "px, ").concat(this.current.y, "px, 0) ") + "scale(".concat(this.current.z, ")");
+    }
+    /**
+    * @param {Element} element
+    * @param {Object} point
+    * @param {Object} originalSize
+    * @param {Float} scale
+    * @return {Object}
+    */
+
+  }, {
+    key: "getRelativePosition",
+    value: function getRelativePosition(element, point, originalSize, scale) {
+      var domCoords = this.getCoords(element);
+      var elementX = point.x - domCoords.x;
+      var elementY = point.y - domCoords.y;
+      var relativeX = elementX / (originalSize.width * scale / 2) - 1;
+      var relativeY = elementY / (originalSize.height * scale / 2) - 1;
+      return {
+        x: relativeX,
+        y: relativeY
       };
     }
+    /**
+    * @param {Element} elem
+    * @return {Object}
+    */
 
-    current.x = last.x + e.deltaX - fixHammerjsDeltaIssue.x;
-    current.y = last.y + e.deltaY - fixHammerjsDeltaIssue.y;
-    lastEvent = 'pan';
-    update();
-  });
-  hammertime.on('pinch', function (e) {
-    var d = scaleFrom(pinchZoomOrigin, last.z, last.z * e.scale);
-    current.x = d.x + last.x + e.deltaX;
-    current.y = d.y + last.y + e.deltaY;
-    current.z = d.z + last.z;
-    lastEvent = 'pinch';
-    update();
-  });
-  hammertime.on('pinchstart', function (e) {
-    pinchStart.x = e.center.x;
-    pinchStart.y = e.center.y;
-    pinchZoomOrigin = getRelativePosition(element, {
-      x: pinchStart.x,
-      y: pinchStart.y
-    }, originalSize, current.z);
-    lastEvent = 'pinchstart';
-  });
-  hammertime.on('panend', function (e) {
-    last.x = current.x;
-    last.y = current.y;
-    lastEvent = 'panend';
-  });
-  hammertime.on('pinchend', function (e) {
-    last.x = current.x;
-    last.y = current.y;
-    last.z = current.z;
-    lastEvent = 'pinchend';
-  });
-  /**
-  * Final function to modify element.
-  */
+  }, {
+    key: "getCoords",
+    value: function getCoords(elem) {
+      // crossbrowser version
+      var box = elem.getBoundingClientRect();
+      var body = document.body;
+      var docEl = document.documentElement;
+      var scrollTop = window.pageYOffset || docEl.scrollTop || body.scrollTop;
+      var scrollLeft = window.pageXOffset || docEl.scrollLeft || body.scrollLeft;
+      var clientTop = docEl.clientTop || body.clientTop || 0;
+      var clientLeft = docEl.clientLeft || body.clientLeft || 0;
+      var top = box.top + scrollTop - clientTop;
+      var left = box.left + scrollLeft - clientLeft;
+      return {
+        x: Math.round(left),
+        y: Math.round(top)
+      };
+    }
+    /**
+    * @param {Object} zoomOrigin
+    * @param {Float} currentScale
+    * @param {Float} newScale
+    * @return {Object}
+    */
 
-  function update() {
-    current.height = originalSize.height * current.z;
-    current.width = originalSize.width * current.z;
-    element.style.transform = "translate3d(".concat(current.x, "px, ").concat(current.y, "px, 0) scale(").concat(current.z, ")");
-  }
-  /**
-  * @param {Element} element
-  * @param {Object} point
-  * @param {Object} originalSize
-  * @param {Float} scale
-  * @return {Object}
-  */
+  }, {
+    key: "scaleFrom",
+    value: function scaleFrom(zoomOrigin, currentScale, newScale) {
+      var originalSize = this.originalSize;
+      var currentShift = this.getCoordinateShiftDueToScale(originalSize, currentScale);
+      var newShift = this.getCoordinateShiftDueToScale(originalSize, newScale);
+      var zoomDistance = newScale - currentScale;
+      var shift = {
+        x: currentShift.x - newShift.x,
+        y: currentShift.y - newShift.y
+      };
+      var output = {
+        x: zoomOrigin.x * shift.x,
+        y: zoomOrigin.y * shift.y,
+        z: zoomDistance
+      };
+      return output;
+    }
+    /**
+    * @param {Object} size
+    * @param {Float} scale
+    * @return {Object}
+    */
 
+  }, {
+    key: "getCoordinateShiftDueToScale",
+    value: function getCoordinateShiftDueToScale(size, scale) {
+      var newWidth = scale * size.width;
+      var newHeight = scale * size.height;
+      var dx = (newWidth - size.width) / 2;
+      var dy = (newHeight - size.height) / 2;
+      return {
+        x: dx,
+        y: dy
+      };
+    }
+  }]);
 
-  function getRelativePosition(element, point, originalSize, scale) {
-    var domCoords = getCoords(element);
-    var elementX = point.x - domCoords.x;
-    var elementY = point.y - domCoords.y;
-    var relativeX = elementX / (originalSize.width * scale / 2) - 1;
-    var relativeY = elementY / (originalSize.height * scale / 2) - 1;
-    return {
-      x: relativeX,
-      y: relativeY
-    };
-  }
-  /**
-  * @param {Element} elem
-  * @return {Object}
-  */
-
-
-  function getCoords(elem) {
-    // crossbrowser version
-    var box = elem.getBoundingClientRect();
-    var body = document.body;
-    var docEl = document.documentElement;
-    var scrollTop = window.pageYOffset || docEl.scrollTop || body.scrollTop;
-    var scrollLeft = window.pageXOffset || docEl.scrollLeft || body.scrollLeft;
-    var clientTop = docEl.clientTop || body.clientTop || 0;
-    var clientLeft = docEl.clientLeft || body.clientLeft || 0;
-    var top = box.top + scrollTop - clientTop;
-    var left = box.left + scrollLeft - clientLeft;
-    return {
-      x: Math.round(left),
-      y: Math.round(top)
-    };
-  }
-  /**
-  * @param {Object} zoomOrigin
-  * @param {Float} currentScale
-  * @param {Float} newScale
-  * @return {Object}
-  */
-
-
-  function scaleFrom(zoomOrigin, currentScale, newScale) {
-    var currentShift = getCoordinateShiftDueToScale(originalSize, currentScale);
-    var newShift = getCoordinateShiftDueToScale(originalSize, newScale);
-    var zoomDistance = newScale - currentScale;
-    var shift = {
-      x: currentShift.x - newShift.x,
-      y: currentShift.y - newShift.y
-    };
-    var output = {
-      x: zoomOrigin.x * shift.x,
-      y: zoomOrigin.y * shift.y,
-      z: zoomDistance
-    };
-    return output;
-  }
-  /**
-  * @param {Object} size
-  * @param {Float} scale
-  * @return {Object}
-  */
-
-
-  function getCoordinateShiftDueToScale(size, scale) {
-    var newWidth = scale * size.width;
-    var newHeight = scale * size.height;
-    var dx = (newWidth - size.width) / 2;
-    var dy = (newHeight - size.height) / 2;
-    return {
-      x: dx,
-      y: dy
-    };
-  }
-}
+  return Zoomy;
+}();
 
 /**
  * @class Attacher
@@ -2930,6 +2984,7 @@ function () {
     this.forcedPosPriority = false;
     this.refreshSeconds = refreshSeconds;
     this.windowWidth = window.innerWidth;
+    this.Zoomy = new Zoomy(reference);
     /**
      * Bind reference to target if target exists.
      */
@@ -2980,7 +3035,7 @@ function () {
         _this2.setTransitionStyle();
       }, 100);
       this.startWatch();
-      zoomy(this.reference);
+      this.Zoomy.startWatch();
     }
     /**
      * Make reference invisible. Stop watching.
@@ -3329,7 +3384,8 @@ var attacher = new Attacher(reference, {
  */
 
 new Attacher(document.querySelector('.reference--static'), {
-  target: document.querySelector('.target--static')
+  target: document.querySelector('.target--static'),
+  transition: 0
 });
 /**
  * Click and key events for debugging.

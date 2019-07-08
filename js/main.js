@@ -6,7 +6,7 @@ import '../sass/main.scss';
 /**
  * Import Helper Classes
  */
-import zoomy from './zoomy';
+import Zoomy from './zoomy';
 
 /**
  * @class Attacher
@@ -49,6 +49,7 @@ export default class Attacher {
     this.forcedPosPriority = false;
     this.refreshSeconds = refreshSeconds;
     this.windowWidth = window.innerWidth;
+    this.Zoomy = new Zoomy(reference);
     /**
      * Bind reference to target if target exists.
      */
@@ -87,7 +88,7 @@ export default class Attacher {
       this.setTransitionStyle();
     }, 100);
     this.startWatch();
-    zoomy(this.reference);
+    this.Zoomy.startWatch();
   }
 
   /**
