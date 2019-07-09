@@ -6,7 +6,7 @@ import '../sass/main.scss';
 /**
  * Import Helper Classes
  */
-import Zoomy from './zoomy';
+import Zoomie from './zoomie';
 
 /**
  * @class Attacher
@@ -23,7 +23,7 @@ export default class Attacher {
    * @prop {Float} transition seconds.
    * @prop {Object} offset of reference to target.
    * @prop {Object} bPadding padding of boundary.
-   * @prop {Float} refreshSeconds of attacher.
+   * @prop {Float} watchRefreshSeconds of attacher.
    */
   constructor(reference, {
     target = undefined,
@@ -32,8 +32,8 @@ export default class Attacher {
     transition = 1,
     offset = {inner: 10, outer: 20},
     bPadding = {left: 25, top: 50},
-    refreshSeconds = .5,
-    touch = true,
+    watchRefreshSeconds = .5,
+    touchOptions = {canZoom: true, canPan: true},
   }) {
     if (debug) console.warn('attacher component created.', this);
     /**
@@ -47,13 +47,32 @@ export default class Attacher {
     this.offset = offset;
     this.bPadding = bPadding;
     this.forcedPosPriority = false;
-    this.refreshSeconds = refreshSeconds;
+    this.watchRefreshSeconds = watchRefreshSeconds;
     this.windowWidth = window.innerWidth;
-    this.Zoomy = new Zoomy(reference);
+    this.touchOptions = touchOptions;
+    this.prepareZoomie();
     /**
      * Bind reference to target if target exists.
      */
     if (target) this.bind(target);
+  }
+
+  /**
+   * Prepares zoomie module.
+   */
+  prepareZoomie() {
+    this.Zoomie = new Zoomie(this.reference, {
+      panEndCallback: () => {
+        this.setTransitionStyle();
+      },
+      pinchEndCallback: (size) => {
+        this.setTransitionStyle();
+        if (size >= 2) this.viewportLock();
+      },
+      doubleTapEndCallback: () => {
+        this.setTransitionStyle();
+      },
+    });
   }
 
   /**
@@ -88,7 +107,6 @@ export default class Attacher {
       this.setTransitionStyle();
     }, 100);
     this.startWatch();
-    this.Zoomy.startWatch();
   }
 
   /**
@@ -121,10 +139,18 @@ export default class Attacher {
 
   /**
    * Set reference's default transition
+   * @arg {Element} reference
    * @arg {Float} transition
    */
-  setTransitionStyle(transition = this.transition) {
-    this.reference.style.transition = `${transition}s`;
+  setTransitionStyle(reference = this.reference, transition = this.transition) {
+    reference.style.transition = `${transition}s`;
+  }
+
+  /**
+   * Lock Viewport
+   */
+  viewportLock() {
+    console.log('its big');
   }
 
   /**
@@ -178,8 +204,20 @@ export default class Attacher {
     /**
      * Register touch events
      */
+    this.Zoomie.startWatch();
     this.eventListenersCreated = true;
     if (this.debug) console.warn('attacher started watching.');
+  }
+
+  /**
+   * Stop listening scroll and resize events.
+   */
+  stopWatch() {
+    document.removeEventListener('scroll', this.scrollWatcher);
+    window.removeEventListener('resize', this.resizeWatcher);
+    this.Zoomie.stopWatch();
+    this.eventListenersCreated = false;
+    if (this.debug) console.warn('attacher stopped watching.');
   }
 
   /**
@@ -195,7 +233,7 @@ export default class Attacher {
       this.checkBleedingTimer = false;
       this.refresh();
       if (this.debug) console.log('Refreshed.');
-    }, this.refreshSeconds * 1000);
+    }, this.watchRefreshSeconds * 1000);
     this.checkBleedingTimer = true;
   }
 
@@ -217,16 +255,6 @@ export default class Attacher {
       console.warn('attacher switched off sleep mode.');
     }
     this.sleepMode = false;
-  }
-
-  /**
-   * Stop listening scroll and resize events.
-   */
-  stopWatch() {
-    document.removeEventListener('scroll', this.scrollWatcher);
-    window.removeEventListener('resize', this.resizeWatcher);
-    this.eventListenersCreated = false;
-    if (this.debug) console.warn('attacher stopped watching.');
   }
 
   /**
@@ -253,6 +281,8 @@ export default class Attacher {
   setPosition(position) {
     this.reference.style.left = `${position.left}px`;
     this.reference.style.top = `${position.top}px`;
+    this.reference.style.transform = '';
+    this.Zoomie.reset();
   }
 
   /**

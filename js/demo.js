@@ -20,9 +20,12 @@ const targets = document.querySelectorAll('.target');
 const attacher = new Attacher(reference, {
   target: targets[0],
   posPriority: 'top',
-  transition: 0,
+  transition: 1,
   debug: true,
-  touch: true,
+  touch: {
+    canZoom: true,
+    canPan: false,
+  },
 });
 
 /**

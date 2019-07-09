@@ -2672,22 +2672,33 @@ if (typeof undefined$1 === 'function' && undefined$1.amd) {
 });
 
 /**
- * Zoomy Class
+ * Zoomie Class
  */
 
-var Zoomy =
+var Zoomie =
 /*#__PURE__*/
 function () {
   /**
    * @constructor
    * @arg {Element} element
    */
-  function Zoomy() {
-    var element = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : null;
+  function Zoomie() {
+    var element = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : undefined;
 
-    _classCallCheck(this, Zoomy);
+    var _ref = arguments.length > 1 ? arguments[1] : undefined,
+        _ref$panEndCallback = _ref.panEndCallback,
+        panEndCallback = _ref$panEndCallback === void 0 ? function () {} : _ref$panEndCallback,
+        _ref$pinchEndCallback = _ref.pinchEndCallback,
+        pinchEndCallback = _ref$pinchEndCallback === void 0 ? function () {} : _ref$pinchEndCallback,
+        _ref$doubleTapEndCall = _ref.doubleTapEndCallback,
+        doubleTapEndCallback = _ref$doubleTapEndCall === void 0 ? function () {} : _ref$doubleTapEndCall;
+
+    _classCallCheck(this, Zoomie);
 
     this.element = element;
+    this.panEndCallback = panEndCallback;
+    this.pinchEndCallback = pinchEndCallback;
+    this.doubleTapEndCallback = doubleTapEndCallback;
     this.originalSize = {
       width: element.offsetWidth,
       height: element.offsetHeight
@@ -2712,26 +2723,25 @@ function () {
       x: undefined,
       y: undefined
     };
-    this.hammertime = undefined;
+    this.hammertime = new hammer(this.element, {});
+    this.hammertime.get('pinch').set({
+      enable: true
+    });
+    this.hammertime.get('pan').set({
+      threshold: 0
+    });
   }
   /**
    * Registers hammer-js event listeners.
    */
 
 
-  _createClass(Zoomy, [{
+  _createClass(Zoomie, [{
     key: "startWatch",
     value: function startWatch() {
       var _this = this;
 
-      this.hammertime = new hammer(this.element, {});
-      this.hammertime.get('pinch').set({
-        enable: true
-      });
-      this.hammertime.get('pan').set({
-        threshold: 10
-      });
-      this.hammertime.on('doubletap', this.doubleTapCallback = function (e) {
+      this.hammertime.on('doubletap', this.doubleTapFunction = function (e) {
         var scaleFactor = 1;
 
         if (_this.current.zooming === false) {
@@ -2744,6 +2754,8 @@ function () {
         _this.element.style.transition = '0.3s';
         setTimeout(function () {
           _this.element.style.transition = 'none';
+
+          _this.doubleTapEndCallback();
         }, 300);
 
         var zoomOrigin = _this.getRelativePosition(_this.element, {
@@ -2762,7 +2774,10 @@ function () {
 
         _this.update();
       });
-      this.hammertime.on('pan', this.panCallback = function (e) {
+      this.hammertime.on('panstart', this.panStartFunction = function () {
+        _this.element.style.transition = '';
+      });
+      this.hammertime.on('pan', this.panFunction = function (e) {
         if (_this.lastEvent !== 'pan') {
           _this.fixHammerjsDeltaIssue = {
             x: e.deltaX,
@@ -2776,21 +2791,24 @@ function () {
 
         _this.update();
       });
-      this.hammertime.on('panend', this.panEndCallback = function () {
+      this.hammertime.on('panend', this.panEndFunction = function () {
         _this.last.x = _this.current.x;
         _this.last.y = _this.current.y;
         _this.lastEvent = 'panend';
+
+        _this.panEndCallback();
       });
-      this.hammertime.on('pinchstart', this.pinchStartCallback = function (e) {
+      this.hammertime.on('pinchstart', this.pinchStartFunction = function (e) {
         _this.pinchStart.x = e.center.x + window.scrollX;
         _this.pinchStart.y = e.center.y + window.scrollY;
         _this.pinchZoomOrigin = _this.getRelativePosition(_this.element, {
           x: _this.pinchStart.x,
           y: _this.pinchStart.y
         }, _this.originalSize, _this.current.z);
+        _this.element.style.transition = '';
         _this.lastEvent = 'pinchstart';
       });
-      this.hammertime.on('pinch', this.pinchCallback = function (e) {
+      this.hammertime.on('pinch', this.pinchFunction = function (e) {
         var d = _this.scaleFrom(_this.pinchZoomOrigin, _this.last.z, _this.last.z * e.scale);
 
         _this.current.x = d.x + _this.last.x + e.deltaX;
@@ -2800,11 +2818,13 @@ function () {
 
         _this.update();
       });
-      this.hammertime.on('pinchend', this.pinchEndCallback = function () {
+      this.hammertime.on('pinchend', this.pinchEndFunction = function () {
         _this.last.x = _this.current.x;
         _this.last.y = _this.current.y;
         _this.last.z = _this.current.z;
         _this.lastEvent = 'pinchend';
+
+        _this.pinchEndCallback(_this.last.z);
       });
     }
     /**
@@ -2820,6 +2840,27 @@ function () {
       this.hammertime.off('pinchstart');
       this.hammertime.off('pinch');
       this.hammertime.off('pinchend');
+    }
+    /**
+     * Resets the zoomie transforms
+     */
+
+  }, {
+    key: "reset",
+    value: function reset() {
+      this.current = {
+        x: 0,
+        y: 0,
+        z: 1,
+        zooming: false,
+        width: this.originalSize.width * 1,
+        height: this.originalSize.height * 1
+      };
+      this.last = {
+        x: this.current.x,
+        y: this.current.y,
+        z: this.current.z
+      };
     }
     /**
     * Final function to modify element.
@@ -2921,7 +2962,7 @@ function () {
     }
   }]);
 
-  return Zoomy;
+  return Zoomie;
 }();
 
 /**
@@ -2942,7 +2983,7 @@ function () {
    * @prop {Float} transition seconds.
    * @prop {Object} offset of reference to target.
    * @prop {Object} bPadding padding of boundary.
-   * @prop {Float} refreshSeconds of attacher.
+   * @prop {Float} watchRefreshSeconds of attacher.
    */
   function Attacher(reference, _ref) {
     var _ref$target = _ref.target,
@@ -2963,9 +3004,13 @@ function () {
       left: 25,
       top: 50
     } : _ref$bPadding,
-        _ref$refreshSeconds = _ref.refreshSeconds,
-        refreshSeconds = _ref$refreshSeconds === void 0 ? .5 : _ref$refreshSeconds,
-        _ref$touch = _ref.touch;
+        _ref$watchRefreshSeco = _ref.watchRefreshSeconds,
+        watchRefreshSeconds = _ref$watchRefreshSeco === void 0 ? .5 : _ref$watchRefreshSeco,
+        _ref$touchOptions = _ref.touchOptions,
+        touchOptions = _ref$touchOptions === void 0 ? {
+      canZoom: true,
+      canPan: true
+    } : _ref$touchOptions;
 
     _classCallCheck(this, Attacher);
 
@@ -2982,9 +3027,10 @@ function () {
     this.offset = offset;
     this.bPadding = bPadding;
     this.forcedPosPriority = false;
-    this.refreshSeconds = refreshSeconds;
+    this.watchRefreshSeconds = watchRefreshSeconds;
     this.windowWidth = window.innerWidth;
-    this.Zoomy = new Zoomy(reference);
+    this.touchOptions = touchOptions;
+    this.prepareZoomie();
     /**
      * Bind reference to target if target exists.
      */
@@ -2992,20 +3038,43 @@ function () {
     if (target) this.bind(target);
   }
   /**
-   * Binds reference element to target element.
-   * @arg {Element} target could be a new target element.
+   * Prepares zoomie module.
    */
 
 
   _createClass(Attacher, [{
+    key: "prepareZoomie",
+    value: function prepareZoomie() {
+      var _this = this;
+
+      this.Zoomie = new Zoomie(this.reference, {
+        panEndCallback: function panEndCallback() {
+          _this.setTransitionStyle();
+        },
+        pinchEndCallback: function pinchEndCallback(size) {
+          _this.setTransitionStyle();
+
+          if (size >= 2) _this.viewportLock();
+        },
+        doubleTapEndCallback: function doubleTapEndCallback() {
+          _this.setTransitionStyle();
+        }
+      });
+    }
+    /**
+     * Binds reference element to target element.
+     * @arg {Element} target could be a new target element.
+     */
+
+  }, {
     key: "bind",
     value: function bind(target) {
-      var _this = this;
+      var _this2 = this;
 
       this.target = target;
       this.setStyles();
       setTimeout(function () {
-        _this.activate();
+        _this2.activate();
       }, 100);
       if (this.debug) console.log("Attacher bind method fired.");
     }
@@ -3028,14 +3097,13 @@ function () {
   }, {
     key: "activate",
     value: function activate() {
-      var _this2 = this;
+      var _this3 = this;
 
       this.refresh();
       setTimeout(function () {
-        _this2.setTransitionStyle();
+        _this3.setTransitionStyle();
       }, 100);
       this.startWatch();
-      this.Zoomy.startWatch();
     }
     /**
      * Make reference invisible. Stop watching.
@@ -3073,14 +3141,25 @@ function () {
     }
     /**
      * Set reference's default transition
+     * @arg {Element} reference
      * @arg {Float} transition
      */
 
   }, {
     key: "setTransitionStyle",
     value: function setTransitionStyle() {
-      var transition = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.transition;
-      this.reference.style.transition = "".concat(transition, "s");
+      var reference = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.reference;
+      var transition = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this.transition;
+      reference.style.transition = "".concat(transition, "s");
+    }
+    /**
+     * Lock Viewport
+     */
+
+  }, {
+    key: "viewportLock",
+    value: function viewportLock() {
+      console.log('its big');
     }
     /**
      * Refresh position of reference element.
@@ -3107,7 +3186,7 @@ function () {
   }, {
     key: "startWatch",
     value: function startWatch() {
-      var _this3 = this;
+      var _this4 = this;
 
       /**
        * Check if event listeners assigned.
@@ -3118,9 +3197,9 @@ function () {
        */
 
       document.addEventListener('scroll', this.scrollWatcher = function () {
-        if (!_this3.sleepMode) _this3.autoRefresh();
+        if (!_this4.sleepMode) _this4.autoRefresh();
 
-        _this3.switchToSleepMode();
+        _this4.switchToSleepMode();
       }, {
         passive: true
       });
@@ -3129,31 +3208,45 @@ function () {
        */
 
       window.addEventListener('resize', this.resizeWatcher = function () {
-        if (_this3.windowWidth == window.innerWidth) return;
-        if (_this3.debug) console.warn('Document resized.');
-        _this3.reference.style.display = 'none';
+        if (_this4.windowWidth == window.innerWidth) return;
+        if (_this4.debug) console.warn('Document resized.');
+        _this4.reference.style.display = 'none';
 
-        _this3.resetStyles();
+        _this4.resetStyles();
 
         setTimeout(function () {
-          _this3.reference.style.display = '';
+          _this4.reference.style.display = '';
 
-          _this3.setStyles();
+          _this4.setStyles();
 
-          _this3.refresh();
+          _this4.refresh();
         }, 100);
         setTimeout(function () {
-          _this3.setTransitionStyle();
+          _this4.setTransitionStyle();
         }, 200);
-        _this3.windowWidth = window.innerWidth;
-        if (_this3.debug) console.log('new screen width set to default');
+        _this4.windowWidth = window.innerWidth;
+        if (_this4.debug) console.log('new screen width set to default');
       });
       /**
        * Register touch events
        */
 
+      this.Zoomie.startWatch();
       this.eventListenersCreated = true;
       if (this.debug) console.warn('attacher started watching.');
+    }
+    /**
+     * Stop listening scroll and resize events.
+     */
+
+  }, {
+    key: "stopWatch",
+    value: function stopWatch() {
+      document.removeEventListener('scroll', this.scrollWatcher);
+      window.removeEventListener('resize', this.resizeWatcher);
+      this.Zoomie.stopWatch();
+      this.eventListenersCreated = false;
+      if (this.debug) console.warn('attacher stopped watching.');
     }
     /**
      * Auto refreshes attacher on scroll event.
@@ -3162,7 +3255,7 @@ function () {
   }, {
     key: "autoRefresh",
     value: function autoRefresh() {
-      var _this4 = this;
+      var _this5 = this;
 
       if (this.checkBleedingTimer) return;
 
@@ -3171,12 +3264,12 @@ function () {
       }
       if (this.debug) console.log('Refresh requested.');
       setTimeout(function () {
-        _this4.checkBleedingTimer = false;
+        _this5.checkBleedingTimer = false;
 
-        _this4.refresh();
+        _this5.refresh();
 
-        if (_this4.debug) console.log('Refreshed.');
-      }, this.refreshSeconds * 1000);
+        if (_this5.debug) console.log('Refreshed.');
+      }, this.watchRefreshSeconds * 1000);
       this.checkBleedingTimer = true;
     }
     /**
@@ -3200,18 +3293,6 @@ function () {
       }
 
       this.sleepMode = false;
-    }
-    /**
-     * Stop listening scroll and resize events.
-     */
-
-  }, {
-    key: "stopWatch",
-    value: function stopWatch() {
-      document.removeEventListener('scroll', this.scrollWatcher);
-      window.removeEventListener('resize', this.resizeWatcher);
-      this.eventListenersCreated = false;
-      if (this.debug) console.warn('attacher stopped watching.');
     }
     /**
      * Decide new position according to window size and priority.
@@ -3240,6 +3321,8 @@ function () {
     value: function setPosition(position) {
       this.reference.style.left = "".concat(position.left, "px");
       this.reference.style.top = "".concat(position.top, "px");
+      this.reference.style.transform = '';
+      this.Zoomie.reset();
     }
     /**
      * check if X axis is out of border.
@@ -3375,9 +3458,12 @@ var targets = document.querySelectorAll('.target');
 var attacher = new Attacher(reference, {
   target: targets[0],
   posPriority: 'top',
-  transition: 0,
+  transition: 1,
   debug: true,
-  touch: true
+  touch: {
+    canZoom: true,
+    canPan: false
+  }
 });
 /**
  * Create static attacher example.

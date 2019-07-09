@@ -1,15 +1,22 @@
 import Hammer from 'hammerjs';
 
 /**
- * Zoomy Class
+ * Zoomie Class
  */
-export default class Zoomy {
+export default class Zoomie {
   /**
    * @constructor
    * @arg {Element} element
    */
-  constructor(element = null) {
+  constructor(element = undefined, {
+    panEndCallback = () => {},
+    pinchEndCallback = () => {},
+    doubleTapEndCallback = () => {},
+  }) {
     this.element = element;
+    this.panEndCallback = panEndCallback;
+    this.pinchEndCallback = pinchEndCallback;
+    this.doubleTapEndCallback = doubleTapEndCallback;
     this.originalSize = {
       width: element.offsetWidth,
       height: element.offsetHeight,
@@ -34,21 +41,20 @@ export default class Zoomy {
       x: undefined,
       y: undefined,
     };
-    this.hammertime = undefined;
+    this.hammertime = new Hammer(this.element, {});
+    this.hammertime.get('pinch').set({
+      enable: true,
+    });
+    this.hammertime.get('pan').set({
+      threshold: 0,
+    });
   }
 
   /**
    * Registers hammer-js event listeners.
    */
   startWatch() {
-    this.hammertime = new Hammer(this.element, {});
-    this.hammertime.get('pinch').set({
-      enable: true,
-    });
-    this.hammertime.get('pan').set({
-      threshold: 10,
-    });
-    this.hammertime.on('doubletap', this.doubleTapCallback = (e) => {
+    this.hammertime.on('doubletap', this.doubleTapFunction = (e) => {
       let scaleFactor = 1;
       if (this.current.zooming === false) {
         this.current.zooming = true;
@@ -59,6 +65,7 @@ export default class Zoomy {
       this.element.style.transition = '0.3s';
       setTimeout(() => {
         this.element.style.transition = 'none';
+        this.doubleTapEndCallback();
       }, 300);
       const zoomOrigin = this.getRelativePosition(this.element, {
         x: e.center.x,
@@ -74,7 +81,10 @@ export default class Zoomy {
       this.last.z = this.current.z;
       this.update();
     });
-    this.hammertime.on('pan', this.panCallback = (e) => {
+    this.hammertime.on('panstart', this.panStartFunction = () => {
+      this.element.style.transition = '';
+    });
+    this.hammertime.on('pan', this.panFunction = (e) => {
       if (this.lastEvent !== 'pan') {
         this.fixHammerjsDeltaIssue = {
           x: e.deltaX,
@@ -86,21 +96,23 @@ export default class Zoomy {
       this.lastEvent = 'pan';
       this.update();
     });
-    this.hammertime.on('panend', this.panEndCallback = () => {
+    this.hammertime.on('panend', this.panEndFunction = () => {
       this.last.x = this.current.x;
       this.last.y = this.current.y;
       this.lastEvent = 'panend';
+      this.panEndCallback();
     });
-    this.hammertime.on('pinchstart', this.pinchStartCallback = (e) => {
+    this.hammertime.on('pinchstart', this.pinchStartFunction = (e) => {
       this.pinchStart.x = e.center.x + window.scrollX;
       this.pinchStart.y = e.center.y + window.scrollY;
       this.pinchZoomOrigin = this.getRelativePosition(this.element, {
         x: this.pinchStart.x,
         y: this.pinchStart.y,
       }, this.originalSize, this.current.z);
+      this.element.style.transition = '';
       this.lastEvent = 'pinchstart';
     });
-    this.hammertime.on('pinch', this.pinchCallback = (e) => {
+    this.hammertime.on('pinch', this.pinchFunction = (e) => {
       const d =
       this.scaleFrom(this.pinchZoomOrigin, this.last.z, this.last.z * e.scale);
       this.current.x = d.x + this.last.x + e.deltaX;
@@ -109,11 +121,12 @@ export default class Zoomy {
       this.lastEvent = 'pinch';
       this.update();
     });
-    this.hammertime.on('pinchend', this.pinchEndCallback = () => {
+    this.hammertime.on('pinchend', this.pinchEndFunction = () => {
       this.last.x = this.current.x;
       this.last.y = this.current.y;
       this.last.z = this.current.z;
       this.lastEvent = 'pinchend';
+      this.pinchEndCallback(this.last.z);
     });
   }
 
@@ -127,6 +140,25 @@ export default class Zoomy {
     this.hammertime.off('pinchstart');
     this.hammertime.off('pinch');
     this.hammertime.off('pinchend');
+  }
+
+  /**
+   * Resets the zoomie transforms
+   */
+  reset() {
+    this.current = {
+      x: 0,
+      y: 0,
+      z: 1,
+      zooming: false,
+      width: this.originalSize.width * 1,
+      height: this.originalSize.height * 1,
+    };
+    this.last = {
+      x: this.current.x,
+      y: this.current.y,
+      z: this.current.z,
+    };
   }
 
   /**
