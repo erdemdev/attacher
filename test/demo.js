@@ -2686,19 +2686,37 @@ function () {
     var element = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : undefined;
 
     var _ref = arguments.length > 1 ? arguments[1] : undefined,
+        _ref$panStartCallback = _ref.panStartCallback,
+        panStartCallback = _ref$panStartCallback === void 0 ? function () {} : _ref$panStartCallback,
         _ref$panEndCallback = _ref.panEndCallback,
         panEndCallback = _ref$panEndCallback === void 0 ? function () {} : _ref$panEndCallback,
+        _ref$pinchStartCallba = _ref.pinchStartCallback,
+        pinchStartCallback = _ref$pinchStartCallba === void 0 ? function () {} : _ref$pinchStartCallba,
         _ref$pinchEndCallback = _ref.pinchEndCallback,
         pinchEndCallback = _ref$pinchEndCallback === void 0 ? function () {} : _ref$pinchEndCallback,
+        _ref$doubleTapStartCa = _ref.doubleTapStartCallback,
+        doubleTapStartCallback = _ref$doubleTapStartCa === void 0 ? function () {} : _ref$doubleTapStartCa,
         _ref$doubleTapEndCall = _ref.doubleTapEndCallback,
-        doubleTapEndCallback = _ref$doubleTapEndCall === void 0 ? function () {} : _ref$doubleTapEndCall;
+        doubleTapEndCallback = _ref$doubleTapEndCall === void 0 ? function () {} : _ref$doubleTapEndCall,
+        _ref$zoomOutLimit = _ref.zoomOutLimit,
+        zoomOutLimit = _ref$zoomOutLimit === void 0 ? 1 : _ref$zoomOutLimit,
+        _ref$zoomInLimit = _ref.zoomInLimit,
+        zoomInLimit = _ref$zoomInLimit === void 0 ? 7 : _ref$zoomInLimit,
+        _ref$bPadding = _ref.bPadding,
+        bPadding = _ref$bPadding === void 0 ? 100 : _ref$bPadding;
 
     _classCallCheck(this, Zoomie);
 
     this.element = element;
+    this.panStartCallback = panStartCallback;
     this.panEndCallback = panEndCallback;
+    this.pinchStartCallback = pinchStartCallback;
     this.pinchEndCallback = pinchEndCallback;
+    this.doubleTapStartCallback = doubleTapStartCallback;
     this.doubleTapEndCallback = doubleTapEndCallback;
+    this.zoomOutLimit = zoomOutLimit;
+    this.zoomInLimit = zoomInLimit;
+    this.bPadding = bPadding;
     this.originalSize = {
       width: element.offsetWidth,
       height: element.offsetHeight
@@ -2723,6 +2741,10 @@ function () {
       x: undefined,
       y: undefined
     };
+    /**
+     * Hammer-js instance and options.
+     */
+
     this.hammertime = new hammer(this.element, {});
     this.hammertime.get('pinch').set({
       enable: true
@@ -2739,9 +2761,38 @@ function () {
   _createClass(Zoomie, [{
     key: "startWatch",
     value: function startWatch() {
+      this.tapWatch();
+      this.doubleTapWatch();
+      this.panStartWatch();
+      this.panWatch();
+      this.panEndWatch();
+      this.pinchStartWatch();
+      this.pinchWatch();
+      this.pinchEndWatch();
+    }
+    /**
+     * Hammerjs tap watch.
+     */
+
+  }, {
+    key: "tapWatch",
+    value: function tapWatch() {
+      this.hammertime.on('tap', this.tapFunction = function () {// TODO eğer viewport lock modundaysa eski boyutuna geri döndür.
+        // TODO eğer normal moddaysa tap callback göndert.
+      });
+    }
+    /**
+     * Hammerjs doubletap watch
+     */
+
+  }, {
+    key: "doubleTapWatch",
+    value: function doubleTapWatch() {
       var _this = this;
 
       this.hammertime.on('doubletap', this.doubleTapFunction = function (e) {
+        _this.doubleTapStartCallback();
+
         var scaleFactor = 1;
 
         if (_this.current.zooming === false) {
@@ -2755,12 +2806,12 @@ function () {
         setTimeout(function () {
           _this.element.style.transition = 'none';
 
-          _this.doubleTapEndCallback();
+          _this.doubleTapEndCallback(_this.last.z);
         }, 300);
 
         var zoomOrigin = _this.getRelativePosition(_this.element, {
-          x: e.center.x,
-          y: e.center.y
+          x: e.center.x + window.scrollX,
+          y: e.center.y + window.scrollY
         }, _this.originalSize, _this.current.z);
 
         var d = _this.scaleFrom(zoomOrigin, _this.current.z, _this.current.z + scaleFactor);
@@ -2774,57 +2825,126 @@ function () {
 
         _this.update();
       });
+    }
+    /**
+     * Hammerjs panstart watch
+     */
+
+  }, {
+    key: "panStartWatch",
+    value: function panStartWatch() {
+      var _this2 = this;
+
       this.hammertime.on('panstart', this.panStartFunction = function () {
-        _this.element.style.transition = '';
+        _this2.element.style.transition = '';
+
+        _this2.calculateBorders();
+
+        _this2.panStartCallback();
       });
+    }
+    /**
+     * Hammerjs pan watch
+     */
+
+  }, {
+    key: "panWatch",
+    value: function panWatch() {
+      var _this3 = this;
+
       this.hammertime.on('pan', this.panFunction = function (e) {
-        if (_this.lastEvent !== 'pan') {
-          _this.fixHammerjsDeltaIssue = {
+        if (_this3.lastEvent !== 'pan') {
+          _this3.fixHammerjsDeltaIssue = {
             x: e.deltaX,
             y: e.deltaY
           };
         }
 
-        _this.current.x = _this.last.x + e.deltaX - _this.fixHammerjsDeltaIssue.x;
-        _this.current.y = _this.last.y + e.deltaY - _this.fixHammerjsDeltaIssue.y;
-        _this.lastEvent = 'pan';
+        _this3.current.x = _this3.last.x + e.deltaX - _this3.fixHammerjsDeltaIssue.x;
+        _this3.current.x = Math.max(_this3.current.x, _this3.negativeBorderX);
+        _this3.current.x = Math.min(_this3.current.x, _this3.positiveBorderX);
+        _this3.current.y = _this3.last.y + e.deltaY - _this3.fixHammerjsDeltaIssue.y;
+        _this3.lastEvent = 'pan';
 
-        _this.update();
+        _this3.update();
       });
+    }
+    /**
+     * Hammerjs panend watch
+     */
+
+  }, {
+    key: "panEndWatch",
+    value: function panEndWatch() {
+      var _this4 = this;
+
       this.hammertime.on('panend', this.panEndFunction = function () {
-        _this.last.x = _this.current.x;
-        _this.last.y = _this.current.y;
-        _this.lastEvent = 'panend';
+        _this4.last.x = _this4.current.x;
+        _this4.last.y = _this4.current.y;
+        _this4.lastEvent = 'panend';
 
-        _this.panEndCallback();
+        _this4.panEndCallback();
       });
+    }
+    /**
+     * Hammerjs pinchstart watch
+     */
+
+  }, {
+    key: "pinchStartWatch",
+    value: function pinchStartWatch() {
+      var _this5 = this;
+
       this.hammertime.on('pinchstart', this.pinchStartFunction = function (e) {
-        _this.pinchStart.x = e.center.x + window.scrollX;
-        _this.pinchStart.y = e.center.y + window.scrollY;
-        _this.pinchZoomOrigin = _this.getRelativePosition(_this.element, {
-          x: _this.pinchStart.x,
-          y: _this.pinchStart.y
-        }, _this.originalSize, _this.current.z);
-        _this.element.style.transition = '';
-        _this.lastEvent = 'pinchstart';
+        _this5.pinchStart.x = e.center.x + window.scrollX;
+        _this5.pinchStart.y = e.center.y + window.scrollY;
+        _this5.pinchZoomOrigin = _this5.getRelativePosition(_this5.element, {
+          x: _this5.pinchStart.x,
+          y: _this5.pinchStart.y
+        }, _this5.originalSize, _this5.current.z);
+        _this5.element.style.transition = '';
+        _this5.lastEvent = 'pinchstart';
+
+        _this5.pinchStartCallback();
       });
+    }
+    /**
+     * Hammerjs pinch watch
+     */
+
+  }, {
+    key: "pinchWatch",
+    value: function pinchWatch() {
+      var _this6 = this;
+
       this.hammertime.on('pinch', this.pinchFunction = function (e) {
-        var d = _this.scaleFrom(_this.pinchZoomOrigin, _this.last.z, _this.last.z * e.scale);
+        var d = _this6.scaleFrom(_this6.pinchZoomOrigin, _this6.last.z, _this6.last.z * e.scale);
 
-        _this.current.x = d.x + _this.last.x + e.deltaX;
-        _this.current.y = d.y + _this.last.y + e.deltaY;
-        _this.current.z = d.z + _this.last.z;
-        _this.lastEvent = 'pinch';
+        _this6.current.x = d.x + _this6.last.x + e.deltaX;
+        _this6.current.y = d.y + _this6.last.y + e.deltaY;
+        _this6.current.z = Math.min(d.z + _this6.last.z, _this6.zoomInLimit);
+        _this6.current.z = Math.max(_this6.current.z, _this6.zoomOutLimit);
+        _this6.lastEvent = 'pinch';
 
-        _this.update();
+        _this6.update();
       });
-      this.hammertime.on('pinchend', this.pinchEndFunction = function () {
-        _this.last.x = _this.current.x;
-        _this.last.y = _this.current.y;
-        _this.last.z = _this.current.z;
-        _this.lastEvent = 'pinchend';
+    }
+    /**
+     * Hammerjs pinchend watch
+     */
 
-        _this.pinchEndCallback(_this.last.z);
+  }, {
+    key: "pinchEndWatch",
+    value: function pinchEndWatch() {
+      var _this7 = this;
+
+      this.hammertime.on('pinchend', this.pinchEndFunction = function () {
+        _this7.last.x = _this7.current.x;
+        _this7.last.y = _this7.current.y;
+        _this7.last.z = _this7.current.z;
+        _this7.lastEvent = 'pinchend';
+
+        _this7.pinchEndCallback(_this7.last.z);
       });
     }
     /**
@@ -2872,6 +2992,40 @@ function () {
       this.current.height = this.originalSize.height * this.current.z;
       this.current.width = this.originalSize.width * this.current.z;
       this.element.style.transform = "translate3d(".concat(this.current.x, "px, ").concat(this.current.y, "px, 0) ") + "scale(".concat(this.current.z, ")");
+    }
+    /**
+     * Calculates all pannable borders in both axis.
+     */
+
+  }, {
+    key: "calculateBorders",
+    value: function calculateBorders() {
+      this.negativeBorderX = this.calculateNegativeBorderX();
+      this.positiveBorderX = this.calculatePositiveBorderX();
+    }
+    /**
+     * Limit pan value on negative x-axis.
+     * @return {Float} border limit.
+     */
+
+  }, {
+    key: "calculateNegativeBorderX",
+    value: function calculateNegativeBorderX() {
+      var coords = this.element.getBoundingClientRect();
+      var border = (coords.left + coords.width + window.scrollX - this.current.x) * -1;
+      return border + this.bPadding;
+    }
+    /**
+     * Limit pan value on positive x-axis.
+     * @return {Float} border limit.
+     */
+
+  }, {
+    key: "calculatePositiveBorderX",
+    value: function calculatePositiveBorderX() {
+      var coords = this.element.getBoundingClientRect();
+      var border = window.innerWidth - (coords.left + window.scrollX - this.current.x);
+      return border - this.bPadding;
     }
     /**
     * @param {Element} element
@@ -2984,6 +3138,8 @@ function () {
    * @prop {Object} offset of reference to target.
    * @prop {Object} bPadding padding of boundary.
    * @prop {Float} watchRefreshSeconds of attacher.
+   * @prop {Object} touch defines touch abilities.
+   * @prop {Object} zoom for handling zoom max ratio and lock.
    */
   function Attacher(reference, _ref) {
     var _ref$target = _ref.target,
@@ -3006,11 +3162,16 @@ function () {
     } : _ref$bPadding,
         _ref$watchRefreshSeco = _ref.watchRefreshSeconds,
         watchRefreshSeconds = _ref$watchRefreshSeco === void 0 ? .5 : _ref$watchRefreshSeco,
-        _ref$touchOptions = _ref.touchOptions,
-        touchOptions = _ref$touchOptions === void 0 ? {
+        _ref$touch = _ref.touch,
+        touch = _ref$touch === void 0 ? {
       canZoom: true,
       canPan: true
-    } : _ref$touchOptions;
+    } : _ref$touch,
+        _ref$zoom = _ref.zoom,
+        zoom = _ref$zoom === void 0 ? {
+      zoomOutLimit: 1,
+      zoomInLimit: 7
+    } : _ref$zoom;
 
     _classCallCheck(this, Attacher);
 
@@ -3029,8 +3190,19 @@ function () {
     this.forcedPosPriority = false;
     this.watchRefreshSeconds = watchRefreshSeconds;
     this.windowWidth = window.innerWidth;
-    this.touchOptions = touchOptions;
-    this.prepareZoomie();
+    var _touch$canZoom = touch.canZoom,
+        canZoom = _touch$canZoom === void 0 ? true : _touch$canZoom,
+        _touch$canPan = touch.canPan,
+        canPan = _touch$canPan === void 0 ? true : _touch$canPan;
+    this.canZoom = canZoom;
+    this.canPan = canPan;
+    var _zoom$zoomOutLimit = zoom.zoomOutLimit,
+        zoomOutLimit = _zoom$zoomOutLimit === void 0 ? 1 : _zoom$zoomOutLimit,
+        _zoom$zoomInLimit = zoom.zoomInLimit,
+        zoomInLimit = _zoom$zoomInLimit === void 0 ? 7 : _zoom$zoomInLimit;
+    this.zoomOutLimit = zoomOutLimit;
+    this.zoomInLimit = zoomInLimit;
+    this.createZoomieInstance();
     /**
      * Bind reference to target if target exists.
      */
@@ -3038,23 +3210,32 @@ function () {
     if (target) this.bind(target);
   }
   /**
-   * Prepares zoomie module.
+   * Prepares zoomie module callbacks.
    */
 
 
   _createClass(Attacher, [{
-    key: "prepareZoomie",
-    value: function prepareZoomie() {
+    key: "createZoomieInstance",
+    value: function createZoomieInstance() {
       var _this = this;
 
       this.Zoomie = new Zoomie(this.reference, {
+        zoomOutLimit: this.zoomOutLimit,
+        zoomInLimit: this.zoomInLimit,
+        panStartCallback: function panStartCallback() {
+          _this.switchFocus();
+        },
         panEndCallback: function panEndCallback() {
           _this.setTransitionStyle();
         },
-        pinchEndCallback: function pinchEndCallback(size) {
+        pinchStartCallback: function pinchStartCallback() {
+          _this.switchFocus();
+        },
+        pinchEndCallback: function pinchEndCallback() {
           _this.setTransitionStyle();
-
-          if (size >= 2) _this.viewportLock();
+        },
+        doubleTapStartCallback: function doubleTapStartCallback() {
+          _this.switchFocus();
         },
         doubleTapEndCallback: function doubleTapEndCallback() {
           _this.setTransitionStyle();
@@ -3099,6 +3280,7 @@ function () {
     value: function activate() {
       var _this3 = this;
 
+      /* this.switchFocus(); */
       this.refresh();
       setTimeout(function () {
         _this3.setTransitionStyle();
@@ -3115,6 +3297,16 @@ function () {
       this.reference.style.transition = '';
       this.reference.style.left = '-100%';
       this.stopWatch();
+    }
+    /**
+     * Switch focus function
+     */
+
+  }, {
+    key: "switchFocus",
+    value: function switchFocus() {
+      document.dispatchEvent(new CustomEvent('blurAttacher'));
+      this.reference.style.zIndex = 1000;
     }
     /**
      * Set up reference element's styles.
@@ -3151,15 +3343,6 @@ function () {
       var reference = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.reference;
       var transition = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this.transition;
       reference.style.transition = "".concat(transition, "s");
-    }
-    /**
-     * Lock Viewport
-     */
-
-  }, {
-    key: "viewportLock",
-    value: function viewportLock() {
-      console.log('its big');
     }
     /**
      * Refresh position of reference element.
@@ -3227,6 +3410,11 @@ function () {
         _this4.windowWidth = window.innerWidth;
         if (_this4.debug) console.log('new screen width set to default');
       });
+      /* document.addEventListener('blurAttacher', this.blurAttacher = () => {
+        this.reference.style.zIndex = 1;
+        if (this.debug) console.log('blurAttacher event fired.');
+      }); */
+
       /**
        * Register touch events
        */
@@ -3244,6 +3432,7 @@ function () {
     value: function stopWatch() {
       document.removeEventListener('scroll', this.scrollWatcher);
       window.removeEventListener('resize', this.resizeWatcher);
+      document.removeEventListener('blurAttacher', this.blurAttacher);
       this.Zoomie.stopWatch();
       this.eventListenersCreated = false;
       if (this.debug) console.warn('attacher stopped watching.');
@@ -3471,7 +3660,7 @@ var attacher = new Attacher(reference, {
 
 new Attacher(document.querySelector('.reference--static'), {
   target: document.querySelector('.target--static'),
-  transition: 0
+  debug: true
 });
 /**
  * Click and key events for debugging.

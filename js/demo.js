@@ -33,7 +33,7 @@ const attacher = new Attacher(reference, {
  */
 new Attacher(document.querySelector('.reference--static'), {
   target: document.querySelector('.target--static'),
-  transition: 0,
+  debug: true,
 });
 
 /**

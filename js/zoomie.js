@@ -9,14 +9,26 @@ export default class Zoomie {
    * @arg {Element} element
    */
   constructor(element = undefined, {
+    panStartCallback = () => {},
     panEndCallback = () => {},
+    pinchStartCallback = () => {},
     pinchEndCallback = () => {},
+    doubleTapStartCallback = () => {},
     doubleTapEndCallback = () => {},
+    zoomOutLimit = 1,
+    zoomInLimit = 7,
+    bPadding = 100,
   }) {
     this.element = element;
+    this.panStartCallback = panStartCallback;
     this.panEndCallback = panEndCallback;
+    this.pinchStartCallback = pinchStartCallback;
     this.pinchEndCallback = pinchEndCallback;
+    this.doubleTapStartCallback = doubleTapStartCallback;
     this.doubleTapEndCallback = doubleTapEndCallback;
+    this.zoomOutLimit = zoomOutLimit;
+    this.zoomInLimit = zoomInLimit;
+    this.bPadding = bPadding;
     this.originalSize = {
       width: element.offsetWidth,
       height: element.offsetHeight,
@@ -41,6 +53,9 @@ export default class Zoomie {
       x: undefined,
       y: undefined,
     };
+    /**
+     * Hammer-js instance and options.
+     */
     this.hammertime = new Hammer(this.element, {});
     this.hammertime.get('pinch').set({
       enable: true,
@@ -54,7 +69,32 @@ export default class Zoomie {
    * Registers hammer-js event listeners.
    */
   startWatch() {
+    this.tapWatch();
+    this.doubleTapWatch();
+    this.panStartWatch();
+    this.panWatch();
+    this.panEndWatch();
+    this.pinchStartWatch();
+    this.pinchWatch();
+    this.pinchEndWatch();
+  }
+
+  /**
+   * Hammerjs tap watch.
+   */
+  tapWatch() {
+    this.hammertime.on('tap', this.tapFunction = () => {
+      // TODO eğer viewport lock modundaysa eski boyutuna geri döndür.
+      // TODO eğer normal moddaysa tap callback göndert.
+    });
+  }
+
+  /**
+   * Hammerjs doubletap watch
+   */
+  doubleTapWatch() {
     this.hammertime.on('doubletap', this.doubleTapFunction = (e) => {
+      this.doubleTapStartCallback();
       let scaleFactor = 1;
       if (this.current.zooming === false) {
         this.current.zooming = true;
@@ -65,11 +105,11 @@ export default class Zoomie {
       this.element.style.transition = '0.3s';
       setTimeout(() => {
         this.element.style.transition = 'none';
-        this.doubleTapEndCallback();
+        this.doubleTapEndCallback(this.last.z);
       }, 300);
       const zoomOrigin = this.getRelativePosition(this.element, {
-        x: e.center.x,
-        y: e.center.y,
+        x: e.center.x + window.scrollX,
+        y: e.center.y + window.scrollY,
       }, this.originalSize, this.current.z);
       const d =
       this.scaleFrom(zoomOrigin, this.current.z, this.current.z + scaleFactor);
@@ -81,9 +121,23 @@ export default class Zoomie {
       this.last.z = this.current.z;
       this.update();
     });
+  }
+
+  /**
+   * Hammerjs panstart watch
+   */
+  panStartWatch() {
     this.hammertime.on('panstart', this.panStartFunction = () => {
       this.element.style.transition = '';
+      this.calculateBorders();
+      this.panStartCallback();
     });
+  }
+
+  /**
+   * Hammerjs pan watch
+   */
+  panWatch() {
     this.hammertime.on('pan', this.panFunction = (e) => {
       if (this.lastEvent !== 'pan') {
         this.fixHammerjsDeltaIssue = {
@@ -92,16 +146,30 @@ export default class Zoomie {
         };
       }
       this.current.x = this.last.x + e.deltaX - this.fixHammerjsDeltaIssue.x;
+      this.current.x = Math.max(this.current.x, this.negativeBorderX);
+      this.current.x = Math.min(this.current.x, this.positiveBorderX);
       this.current.y = this.last.y + e.deltaY - this.fixHammerjsDeltaIssue.y;
       this.lastEvent = 'pan';
       this.update();
     });
+  }
+
+  /**
+   * Hammerjs panend watch
+   */
+  panEndWatch() {
     this.hammertime.on('panend', this.panEndFunction = () => {
       this.last.x = this.current.x;
       this.last.y = this.current.y;
       this.lastEvent = 'panend';
       this.panEndCallback();
     });
+  }
+
+  /**
+   * Hammerjs pinchstart watch
+   */
+  pinchStartWatch() {
     this.hammertime.on('pinchstart', this.pinchStartFunction = (e) => {
       this.pinchStart.x = e.center.x + window.scrollX;
       this.pinchStart.y = e.center.y + window.scrollY;
@@ -111,16 +179,30 @@ export default class Zoomie {
       }, this.originalSize, this.current.z);
       this.element.style.transition = '';
       this.lastEvent = 'pinchstart';
+      this.pinchStartCallback();
     });
+  }
+
+  /**
+   * Hammerjs pinch watch
+   */
+  pinchWatch() {
     this.hammertime.on('pinch', this.pinchFunction = (e) => {
       const d =
       this.scaleFrom(this.pinchZoomOrigin, this.last.z, this.last.z * e.scale);
       this.current.x = d.x + this.last.x + e.deltaX;
       this.current.y = d.y + this.last.y + e.deltaY;
-      this.current.z = d.z + this.last.z;
+      this.current.z = Math.min(d.z + this.last.z, this.zoomInLimit);
+      this.current.z = Math.max(this.current.z, this.zoomOutLimit);
       this.lastEvent = 'pinch';
       this.update();
     });
+  }
+
+  /**
+   * Hammerjs pinchend watch
+   */
+  pinchEndWatch() {
     this.hammertime.on('pinchend', this.pinchEndFunction = () => {
       this.last.x = this.current.x;
       this.last.y = this.current.y;
@@ -170,6 +252,36 @@ export default class Zoomie {
     this.element.style.transform =
     `translate3d(${this.current.x}px, ${this.current.y}px, 0) ` +
     `scale(${this.current.z})`;
+  }
+
+  /**
+   * Calculates all pannable borders in both axis.
+   */
+  calculateBorders() {
+    this.negativeBorderX = this.calculateNegativeBorderX();
+    this.positiveBorderX = this.calculatePositiveBorderX();
+  }
+
+  /**
+   * Limit pan value on negative x-axis.
+   * @return {Float} border limit.
+   */
+  calculateNegativeBorderX() {
+    const coords = this.element.getBoundingClientRect();
+    const border = (coords.left + coords.width +
+      window.scrollX - this.current.x) * -1;
+    return border + this.bPadding;
+  }
+
+  /**
+   * Limit pan value on positive x-axis.
+   * @return {Float} border limit.
+   */
+  calculatePositiveBorderX() {
+    const coords = this.element.getBoundingClientRect();
+    const border = window.innerWidth -
+    (coords.left + window.scrollX - this.current.x);
+    return border - this.bPadding;
   }
 
   /**

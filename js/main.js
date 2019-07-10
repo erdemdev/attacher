@@ -24,6 +24,8 @@ export default class Attacher {
    * @prop {Object} offset of reference to target.
    * @prop {Object} bPadding padding of boundary.
    * @prop {Float} watchRefreshSeconds of attacher.
+   * @prop {Object} touch defines touch abilities.
+   * @prop {Object} zoom for handling zoom max ratio and lock.
    */
   constructor(reference, {
     target = undefined,
@@ -33,7 +35,8 @@ export default class Attacher {
     offset = {inner: 10, outer: 20},
     bPadding = {left: 25, top: 50},
     watchRefreshSeconds = .5,
-    touchOptions = {canZoom: true, canPan: true},
+    touch = {canZoom: true, canPan: true},
+    zoom = {zoomOutLimit: 1, zoomInLimit: 7},
   }) {
     if (debug) console.warn('attacher component created.', this);
     /**
@@ -49,8 +52,13 @@ export default class Attacher {
     this.forcedPosPriority = false;
     this.watchRefreshSeconds = watchRefreshSeconds;
     this.windowWidth = window.innerWidth;
-    this.touchOptions = touchOptions;
-    this.prepareZoomie();
+    const {canZoom = true, canPan = true} = touch;
+    this.canZoom = canZoom;
+    this.canPan = canPan;
+    const {zoomOutLimit = 1, zoomInLimit = 7} = zoom;
+    this.zoomOutLimit = zoomOutLimit;
+    this.zoomInLimit = zoomInLimit;
+    this.createZoomieInstance();
     /**
      * Bind reference to target if target exists.
      */
@@ -58,16 +66,26 @@ export default class Attacher {
   }
 
   /**
-   * Prepares zoomie module.
+   * Prepares zoomie module callbacks.
    */
-  prepareZoomie() {
+  createZoomieInstance() {
     this.Zoomie = new Zoomie(this.reference, {
+      zoomOutLimit: this.zoomOutLimit,
+      zoomInLimit: this.zoomInLimit,
+      panStartCallback: () => {
+        this.switchFocus();
+      },
       panEndCallback: () => {
         this.setTransitionStyle();
       },
-      pinchEndCallback: (size) => {
+      pinchStartCallback: () => {
+        this.switchFocus();
+      },
+      pinchEndCallback: () => {
         this.setTransitionStyle();
-        if (size >= 2) this.viewportLock();
+      },
+      doubleTapStartCallback: () => {
+        this.switchFocus();
       },
       doubleTapEndCallback: () => {
         this.setTransitionStyle();
@@ -102,6 +120,7 @@ export default class Attacher {
    * Make reference visible. Start watching.
    */
   activate() {
+    /* this.switchFocus(); */
     this.refresh();
     setTimeout(() => {
       this.setTransitionStyle();
@@ -116,6 +135,14 @@ export default class Attacher {
     this.reference.style.transition = '';
     this.reference.style.left = '-100%';
     this.stopWatch();
+  }
+
+  /**
+   * Switch focus function
+   */
+  switchFocus() {
+    document.dispatchEvent(new CustomEvent('blurAttacher'));
+    this.reference.style.zIndex = 1000;
   }
 
   /**
@@ -144,13 +171,6 @@ export default class Attacher {
    */
   setTransitionStyle(reference = this.reference, transition = this.transition) {
     reference.style.transition = `${transition}s`;
-  }
-
-  /**
-   * Lock Viewport
-   */
-  viewportLock() {
-    console.log('its big');
   }
 
   /**
@@ -201,6 +221,10 @@ export default class Attacher {
       this.windowWidth = window.innerWidth;
       if (this.debug) console.log('new screen width set to default');
     });
+    /* document.addEventListener('blurAttacher', this.blurAttacher = () => {
+      this.reference.style.zIndex = 1;
+      if (this.debug) console.log('blurAttacher event fired.');
+    }); */
     /**
      * Register touch events
      */
@@ -215,6 +239,7 @@ export default class Attacher {
   stopWatch() {
     document.removeEventListener('scroll', this.scrollWatcher);
     window.removeEventListener('resize', this.resizeWatcher);
+    document.removeEventListener('blurAttacher', this.blurAttacher);
     this.Zoomie.stopWatch();
     this.eventListenersCreated = false;
     if (this.debug) console.warn('attacher stopped watching.');
