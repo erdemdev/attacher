@@ -120,7 +120,7 @@ export default class Attacher {
    * Make reference visible. Start watching.
    */
   activate() {
-    /* this.switchFocus(); */
+    this.switchFocus();
     this.refresh();
     setTimeout(() => {
       this.setTransitionStyle();
@@ -221,10 +221,10 @@ export default class Attacher {
       this.windowWidth = window.innerWidth;
       if (this.debug) console.log('new screen width set to default');
     });
-    /* document.addEventListener('blurAttacher', this.blurAttacher = () => {
+    document.addEventListener('blurAttacher', this.blurAttacher = () => {
       this.reference.style.zIndex = 1;
       if (this.debug) console.log('blurAttacher event fired.');
-    }); */
+    });
     /**
      * Register touch events
      */
