@@ -1,8 +1,8 @@
 {
   "name": "attacher",
-  "version": "1.0.6",
+  "version": "1.0.6.1",
   "description": "",
-  "main": "./dist/bundle.js",
+  "main": "./js/main.js",
   "scripts": {
     "start": "rollup -c -w --environment BUILDMODE:dev",
     "prod": "rollup -c --environment BUILDMODE:prod"

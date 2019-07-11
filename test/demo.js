@@ -9696,7 +9696,7 @@ function () {
 
     if (target) this.bind(target); //
 
-    interact$1('.reference').draggable({
+    interact$1(this.reference).draggable({
       onmove: function onmove(event) {
         console.log(event.pageX, event.pageY);
       }

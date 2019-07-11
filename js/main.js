@@ -63,7 +63,7 @@ export default class Attacher {
      */
     if (target) this.bind(target);
     //
-    interact('.reference').draggable({
+    interact(this.reference).draggable({
       onmove(event) {
         console.log(event.pageX, event.pageY);
       },
