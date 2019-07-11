@@ -1,6 +1,6 @@
 {
   "name": "attacher",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "",
   "main": "./dist/bundle.js",
   "scripts": {
@@ -15,7 +15,6 @@
     "autoprefixer": "^9.6.0",
     "eslint": "^6.0.0",
     "eslint-config-google": "^0.13.0",
-    "hammerjs": "^2.0.8",
     "node-sass": "^4.12.0",
     "rollup-plugin-babel": "^4.3.3",
     "rollup-plugin-browsersync": "^1.0.0",
@@ -27,5 +26,8 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/mutantcrow/attacher.git"
+  },
+  "dependencies": {
+    "interactjs": "^1.4.14"
   }
 }

@@ -6,7 +6,7 @@ import '../sass/main.scss';
 /**
  * Import Helper Classes
  */
-import Zoomie from './zoomie';
+import interact from 'interactjs';
 
 /**
  * @class Attacher
@@ -58,37 +58,14 @@ export default class Attacher {
     const {zoomOutLimit = 1, zoomInLimit = 7} = zoom;
     this.zoomOutLimit = zoomOutLimit;
     this.zoomInLimit = zoomInLimit;
-    this.createZoomieInstance();
     /**
      * Bind reference to target if target exists.
      */
     if (target) this.bind(target);
-  }
-
-  /**
-   * Prepares zoomie module callbacks.
-   */
-  createZoomieInstance() {
-    this.Zoomie = new Zoomie(this.reference, {
-      zoomOutLimit: this.zoomOutLimit,
-      zoomInLimit: this.zoomInLimit,
-      panStartCallback: () => {
-        this.switchFocus();
-      },
-      panEndCallback: () => {
-        this.setTransitionStyle();
-      },
-      pinchStartCallback: () => {
-        this.switchFocus();
-      },
-      pinchEndCallback: () => {
-        this.setTransitionStyle();
-      },
-      doubleTapStartCallback: () => {
-        this.switchFocus();
-      },
-      doubleTapEndCallback: () => {
-        this.setTransitionStyle();
+    //
+    interact('.reference').draggable({
+      onmove(event) {
+        console.log(event.pageX, event.pageY);
       },
     });
   }
@@ -228,7 +205,6 @@ export default class Attacher {
     /**
      * Register touch events
      */
-    this.Zoomie.startWatch();
     this.eventListenersCreated = true;
     if (this.debug) console.warn('attacher started watching.');
   }
@@ -240,7 +216,6 @@ export default class Attacher {
     document.removeEventListener('scroll', this.scrollWatcher);
     window.removeEventListener('resize', this.resizeWatcher);
     document.removeEventListener('blurAttacher', this.blurAttacher);
-    this.Zoomie.stopWatch();
     this.eventListenersCreated = false;
     if (this.debug) console.warn('attacher stopped watching.');
   }
@@ -307,7 +282,6 @@ export default class Attacher {
     this.reference.style.left = `${position.left}px`;
     this.reference.style.top = `${position.top}px`;
     this.reference.style.transform = '';
-    this.Zoomie.reset();
   }
 
   /**
