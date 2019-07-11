@@ -2702,8 +2702,14 @@ function () {
         zoomOutLimit = _ref$zoomOutLimit === void 0 ? 1 : _ref$zoomOutLimit,
         _ref$zoomInLimit = _ref.zoomInLimit,
         zoomInLimit = _ref$zoomInLimit === void 0 ? 7 : _ref$zoomInLimit,
+        _ref$viewportLockLimi = _ref.viewportLockLimit,
+        viewportLockLimit = _ref$viewportLockLimi === void 0 ? 2 : _ref$viewportLockLimi,
         _ref$bPadding = _ref.bPadding,
-        bPadding = _ref$bPadding === void 0 ? 100 : _ref$bPadding;
+        bPadding = _ref$bPadding === void 0 ? 100 : _ref$bPadding,
+        _ref$activateDoubleTa = _ref.activateDoubleTap,
+        activateDoubleTap = _ref$activateDoubleTa === void 0 ? false : _ref$activateDoubleTa,
+        _ref$unlockedTapCallb = _ref.unlockedTapCallback,
+        unlockedTapCallback = _ref$unlockedTapCallb === void 0 ? function () {} : _ref$unlockedTapCallb;
 
     _classCallCheck(this, Zoomie);
 
@@ -2716,7 +2722,11 @@ function () {
     this.doubleTapEndCallback = doubleTapEndCallback;
     this.zoomOutLimit = zoomOutLimit;
     this.zoomInLimit = zoomInLimit;
+    this.viewportLockLimit = viewportLockLimit;
     this.bPadding = bPadding;
+    this.activateDoubleTap = activateDoubleTap;
+    this.isViewportLocked = false;
+    this.unlockedTapCallback = unlockedTapCallback;
     this.originalSize = {
       width: element.offsetWidth,
       height: element.offsetHeight
@@ -2747,10 +2757,11 @@ function () {
 
     this.hammertime = new hammer(this.element, {});
     this.hammertime.get('pinch').set({
-      enable: true
+      enable: true,
+      threshold: 0
     });
     this.hammertime.get('pan').set({
-      threshold: 0
+      threshold: 10
     });
   }
   /**
@@ -2762,7 +2773,7 @@ function () {
     key: "startWatch",
     value: function startWatch() {
       this.tapWatch();
-      this.doubleTapWatch();
+      if (this.activateDoubleTap) this.doubleTapWatch();
       this.panStartWatch();
       this.panWatch();
       this.panEndWatch();
@@ -2777,8 +2788,16 @@ function () {
   }, {
     key: "tapWatch",
     value: function tapWatch() {
-      this.hammertime.on('tap', this.tapFunction = function () {// TODO eğer viewport lock modundaysa eski boyutuna geri döndür.
-        // TODO eğer normal moddaysa tap callback göndert.
+      var _this = this;
+
+      this.hammertime.on('tap', this.tapFunction = function () {
+        if (_this.isViewportLocked) {
+          _this.reset();
+
+          _this.element.style.transform = '';
+        } else {
+          _this.unlockedTapCallback();
+        }
       });
     }
     /**
@@ -2788,42 +2807,44 @@ function () {
   }, {
     key: "doubleTapWatch",
     value: function doubleTapWatch() {
-      var _this = this;
+      var _this2 = this;
 
       this.hammertime.on('doubletap', this.doubleTapFunction = function (e) {
-        _this.doubleTapStartCallback();
+        _this2.doubleTapStartCallback();
 
         var scaleFactor = 1;
 
-        if (_this.current.zooming === false) {
-          _this.current.zooming = true;
+        if (_this2.current.zooming === false) {
+          _this2.current.zooming = true;
         } else {
-          _this.current.zooming = false;
+          _this2.current.zooming = false;
           scaleFactor = -scaleFactor;
         }
 
-        _this.element.style.transition = '0.3s';
+        _this2.element.style.transition = '0.3s';
         setTimeout(function () {
-          _this.element.style.transition = 'none';
+          _this2.element.style.transition = 'none';
 
-          _this.doubleTapEndCallback(_this.last.z);
+          _this2.doubleTapEndCallback(_this2.last.z);
         }, 300);
 
-        var zoomOrigin = _this.getRelativePosition(_this.element, {
+        var zoomOrigin = _this2.getRelativePosition(_this2.element, {
           x: e.center.x + window.scrollX,
           y: e.center.y + window.scrollY
-        }, _this.originalSize, _this.current.z);
+        }, _this2.originalSize, _this2.current.z);
 
-        var d = _this.scaleFrom(zoomOrigin, _this.current.z, _this.current.z + scaleFactor);
+        var d = _this2.scaleFrom(zoomOrigin, _this2.current.z, _this2.current.z + scaleFactor);
 
-        _this.current.x += d.x;
-        _this.current.y += d.y;
-        _this.current.z += d.z;
-        _this.last.x = _this.current.x;
-        _this.last.y = _this.current.y;
-        _this.last.z = _this.current.z;
+        _this2.current.x += d.x;
+        _this2.current.y += d.y;
+        _this2.current.z += d.z;
+        _this2.last.x = _this2.current.x;
+        _this2.last.y = _this2.current.y;
+        _this2.last.z = _this2.current.z;
 
-        _this.update();
+        _this2.update();
+
+        _this2.lockViewport();
       });
     }
     /**
@@ -2833,14 +2854,14 @@ function () {
   }, {
     key: "panStartWatch",
     value: function panStartWatch() {
-      var _this2 = this;
+      var _this3 = this;
 
       this.hammertime.on('panstart', this.panStartFunction = function () {
-        _this2.element.style.transition = '';
+        _this3.element.style.transition = '';
 
-        _this2.calculateBorders();
+        _this3.calculateBorders();
 
-        _this2.panStartCallback();
+        _this3.panStartCallback();
       });
     }
     /**
@@ -2850,23 +2871,23 @@ function () {
   }, {
     key: "panWatch",
     value: function panWatch() {
-      var _this3 = this;
+      var _this4 = this;
 
       this.hammertime.on('pan', this.panFunction = function (e) {
-        if (_this3.lastEvent !== 'pan') {
-          _this3.fixHammerjsDeltaIssue = {
+        if (_this4.lastEvent !== 'pan') {
+          _this4.fixHammerjsDeltaIssue = {
             x: e.deltaX,
             y: e.deltaY
           };
         }
 
-        _this3.current.x = _this3.last.x + e.deltaX - _this3.fixHammerjsDeltaIssue.x;
-        _this3.current.x = Math.max(_this3.current.x, _this3.negativeBorderX);
-        _this3.current.x = Math.min(_this3.current.x, _this3.positiveBorderX);
-        _this3.current.y = _this3.last.y + e.deltaY - _this3.fixHammerjsDeltaIssue.y;
-        _this3.lastEvent = 'pan';
+        _this4.current.x = _this4.last.x + e.deltaX - _this4.fixHammerjsDeltaIssue.x;
+        _this4.current.x = Math.max(_this4.current.x, _this4.negativeBorderX);
+        _this4.current.x = Math.min(_this4.current.x, _this4.positiveBorderX);
+        _this4.current.y = _this4.last.y + e.deltaY - _this4.fixHammerjsDeltaIssue.y;
+        _this4.lastEvent = 'pan';
 
-        _this3.update();
+        _this4.update();
       });
     }
     /**
@@ -2876,14 +2897,14 @@ function () {
   }, {
     key: "panEndWatch",
     value: function panEndWatch() {
-      var _this4 = this;
+      var _this5 = this;
 
       this.hammertime.on('panend', this.panEndFunction = function () {
-        _this4.last.x = _this4.current.x;
-        _this4.last.y = _this4.current.y;
-        _this4.lastEvent = 'panend';
+        _this5.last.x = _this5.current.x;
+        _this5.last.y = _this5.current.y;
+        _this5.lastEvent = 'panend';
 
-        _this4.panEndCallback();
+        _this5.panEndCallback();
       });
     }
     /**
@@ -2893,19 +2914,19 @@ function () {
   }, {
     key: "pinchStartWatch",
     value: function pinchStartWatch() {
-      var _this5 = this;
+      var _this6 = this;
 
       this.hammertime.on('pinchstart', this.pinchStartFunction = function (e) {
-        _this5.pinchStart.x = e.center.x + window.scrollX;
-        _this5.pinchStart.y = e.center.y + window.scrollY;
-        _this5.pinchZoomOrigin = _this5.getRelativePosition(_this5.element, {
-          x: _this5.pinchStart.x,
-          y: _this5.pinchStart.y
-        }, _this5.originalSize, _this5.current.z);
-        _this5.element.style.transition = '';
-        _this5.lastEvent = 'pinchstart';
+        _this6.pinchStart.x = e.center.x + window.scrollX;
+        _this6.pinchStart.y = e.center.y + window.scrollY;
+        _this6.pinchZoomOrigin = _this6.getRelativePosition(_this6.element, {
+          x: _this6.pinchStart.x,
+          y: _this6.pinchStart.y
+        }, _this6.originalSize, _this6.current.z);
+        _this6.element.style.transition = '';
+        _this6.lastEvent = 'pinchstart';
 
-        _this5.pinchStartCallback();
+        _this6.pinchStartCallback();
       });
     }
     /**
@@ -2915,18 +2936,18 @@ function () {
   }, {
     key: "pinchWatch",
     value: function pinchWatch() {
-      var _this6 = this;
+      var _this7 = this;
 
       this.hammertime.on('pinch', this.pinchFunction = function (e) {
-        var d = _this6.scaleFrom(_this6.pinchZoomOrigin, _this6.last.z, _this6.last.z * e.scale);
+        var d = _this7.scaleFrom(_this7.pinchZoomOrigin, _this7.last.z, _this7.last.z * e.scale);
 
-        _this6.current.x = d.x + _this6.last.x + e.deltaX;
-        _this6.current.y = d.y + _this6.last.y + e.deltaY;
-        _this6.current.z = Math.min(d.z + _this6.last.z, _this6.zoomInLimit);
-        _this6.current.z = Math.max(_this6.current.z, _this6.zoomOutLimit);
-        _this6.lastEvent = 'pinch';
+        _this7.current.x = d.x + _this7.last.x + e.deltaX;
+        _this7.current.y = d.y + _this7.last.y + e.deltaY;
+        _this7.current.z = Math.min(d.z + _this7.last.z, _this7.zoomInLimit);
+        _this7.current.z = Math.max(_this7.current.z, _this7.zoomOutLimit);
+        _this7.lastEvent = 'pinch';
 
-        _this6.update();
+        _this7.update();
       });
     }
     /**
@@ -2936,16 +2957,31 @@ function () {
   }, {
     key: "pinchEndWatch",
     value: function pinchEndWatch() {
-      var _this7 = this;
+      var _this8 = this;
 
       this.hammertime.on('pinchend', this.pinchEndFunction = function () {
-        _this7.last.x = _this7.current.x;
-        _this7.last.y = _this7.current.y;
-        _this7.last.z = _this7.current.z;
-        _this7.lastEvent = 'pinchend';
+        _this8.last.x = _this8.current.x;
+        _this8.last.y = _this8.current.y;
+        _this8.last.z = _this8.current.z;
+        _this8.lastEvent = 'pinchend';
 
-        _this7.pinchEndCallback(_this7.last.z);
+        _this8.pinchEndCallback(_this8.last.z);
       });
+    }
+    /**
+     * Lock viewport if element size breaches limit.
+     */
+
+  }, {
+    key: "lockViewport",
+    value: function lockViewport() {
+      if (this.last.z > this.viewportLockLimit) {
+        this.isViewportLocked = true;
+      }
+
+      if (this.last.z < this.viewportLockLimit) {
+        this.isViewportLocked = false;
+      }
     }
     /**
      * Unregisters hammer-js event listeners.
@@ -2954,7 +2990,7 @@ function () {
   }, {
     key: "stopWatch",
     value: function stopWatch() {
-      this.hammertime.off('doubletap');
+      if (this.activateDoubleTap) this.hammertime.off('doubletap');
       this.hammertime.off('pan');
       this.hammertime.off('panend');
       this.hammertime.off('pinchstart');
@@ -2992,6 +3028,7 @@ function () {
       this.current.height = this.originalSize.height * this.current.z;
       this.current.width = this.originalSize.width * this.current.z;
       this.element.style.transform = "translate3d(".concat(this.current.x, "px, ").concat(this.current.y, "px, 0) ") + "scale(".concat(this.current.z, ")");
+      this.lockViewport();
     }
     /**
      * Calculates all pannable borders in both axis.
@@ -3280,7 +3317,7 @@ function () {
     value: function activate() {
       var _this3 = this;
 
-      /* this.switchFocus(); */
+      this.switchFocus();
       this.refresh();
       setTimeout(function () {
         _this3.setTransitionStyle();
@@ -3410,11 +3447,10 @@ function () {
         _this4.windowWidth = window.innerWidth;
         if (_this4.debug) console.log('new screen width set to default');
       });
-      /* document.addEventListener('blurAttacher', this.blurAttacher = () => {
-        this.reference.style.zIndex = 1;
-        if (this.debug) console.log('blurAttacher event fired.');
-      }); */
-
+      document.addEventListener('blurAttacher', this.blurAttacher = function () {
+        _this4.reference.style.zIndex = 1;
+        if (_this4.debug) console.log('blurAttacher event fired.');
+      });
       /**
        * Register touch events
        */

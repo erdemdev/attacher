@@ -75,8 +75,8 @@ html, body {
   box-shadow: 0px 10px 25px -15px black;
   cursor: pointer; }
   .reference--static {
-    width: 150px;
-    height: 75px; }
+    width: 200px;
+    height: 100px; }
   .reference--bleed {
     -webkit-transform: translateX(200px);
             transform: translateX(200px); }

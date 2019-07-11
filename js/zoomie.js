@@ -17,7 +17,10 @@ export default class Zoomie {
     doubleTapEndCallback = () => {},
     zoomOutLimit = 1,
     zoomInLimit = 7,
+    viewportLockLimit = 2,
     bPadding = 100,
+    activateDoubleTap = false,
+    unlockedTapCallback = () => {},
   }) {
     this.element = element;
     this.panStartCallback = panStartCallback;
@@ -28,7 +31,11 @@ export default class Zoomie {
     this.doubleTapEndCallback = doubleTapEndCallback;
     this.zoomOutLimit = zoomOutLimit;
     this.zoomInLimit = zoomInLimit;
+    this.viewportLockLimit = viewportLockLimit;
     this.bPadding = bPadding;
+    this.activateDoubleTap = activateDoubleTap;
+    this.isViewportLocked = false;
+    this.unlockedTapCallback = unlockedTapCallback;
     this.originalSize = {
       width: element.offsetWidth,
       height: element.offsetHeight,
@@ -59,9 +66,10 @@ export default class Zoomie {
     this.hammertime = new Hammer(this.element, {});
     this.hammertime.get('pinch').set({
       enable: true,
+      threshold: 0,
     });
     this.hammertime.get('pan').set({
-      threshold: 0,
+      threshold: 10,
     });
   }
 
@@ -70,7 +78,7 @@ export default class Zoomie {
    */
   startWatch() {
     this.tapWatch();
-    this.doubleTapWatch();
+    if (this.activateDoubleTap) this.doubleTapWatch();
     this.panStartWatch();
     this.panWatch();
     this.panEndWatch();
@@ -84,8 +92,12 @@ export default class Zoomie {
    */
   tapWatch() {
     this.hammertime.on('tap', this.tapFunction = () => {
-      // TODO eğer viewport lock modundaysa eski boyutuna geri döndür.
-      // TODO eğer normal moddaysa tap callback göndert.
+      if (this.isViewportLocked) {
+        this.reset();
+        this.element.style.transform = '';
+      } else {
+        this.unlockedTapCallback();
+      }
     });
   }
 
@@ -120,6 +132,7 @@ export default class Zoomie {
       this.last.y = this.current.y;
       this.last.z = this.current.z;
       this.update();
+      this.lockViewport();
     });
   }
 
@@ -213,10 +226,22 @@ export default class Zoomie {
   }
 
   /**
+   * Lock viewport if element size breaches limit.
+   */
+  lockViewport() {
+    if (this.last.z > this.viewportLockLimit) {
+      this.isViewportLocked = true;
+    }
+    if (this.last.z < this.viewportLockLimit) {
+      this.isViewportLocked = false;
+    }
+  }
+
+  /**
    * Unregisters hammer-js event listeners.
    */
   stopWatch() {
-    this.hammertime.off('doubletap');
+    if (this.activateDoubleTap) this.hammertime.off('doubletap');
     this.hammertime.off('pan');
     this.hammertime.off('panend');
     this.hammertime.off('pinchstart');
@@ -252,6 +277,7 @@ export default class Zoomie {
     this.element.style.transform =
     `translate3d(${this.current.x}px, ${this.current.y}px, 0) ` +
     `scale(${this.current.z})`;
+    this.lockViewport();
   }
 
   /**
