@@ -9608,6 +9608,198 @@ return _$index_29;
 var interact$1 = unwrapExports(interact);
 
 /**
+ * @param {Element} gestureArea
+ * @param {Element} scaleElement
+ */
+
+var Touch =
+/*#__PURE__*/
+function () {
+  /**
+   * @constructor
+   * @param {Element} gestureArea
+   * @param {Element} scaleElement
+   */
+  function Touch(gestureArea, scaleElement, _ref) {
+    var _ref$zoom = _ref.zoom;
+    _ref$zoom = _ref$zoom === void 0 ? {} : _ref$zoom;
+    var _ref$zoom$zoomOutLimi = _ref$zoom.zoomOutLimit,
+        zoomOutLimit = _ref$zoom$zoomOutLimi === void 0 ? 1 : _ref$zoom$zoomOutLimi,
+        _ref$zoom$zoomInLimit = _ref$zoom.zoomInLimit,
+        zoomInLimit = _ref$zoom$zoomInLimit === void 0 ? 7 : _ref$zoom$zoomInLimit,
+        _ref$callbacks = _ref.callbacks;
+    _ref$callbacks = _ref$callbacks === void 0 ? {} : _ref$callbacks;
+    var _ref$callbacks$pinchS = _ref$callbacks.pinchStartCallback,
+        pinchStartCallback = _ref$callbacks$pinchS === void 0 ? function () {} : _ref$callbacks$pinchS,
+        _ref$callbacks$pinchE = _ref$callbacks.pinchEndCallback,
+        pinchEndCallback = _ref$callbacks$pinchE === void 0 ? function () {} : _ref$callbacks$pinchE,
+        _ref$callbacks$dragSt = _ref$callbacks.dragStartCallback,
+        dragStartCallback = _ref$callbacks$dragSt === void 0 ? function () {} : _ref$callbacks$dragSt,
+        _ref$callbacks$dragEn = _ref$callbacks.dragEndCallback,
+        dragEndCallback = _ref$callbacks$dragEn === void 0 ? function () {} : _ref$callbacks$dragEn;
+
+    _classCallCheck(this, Touch);
+
+    this.gestureArea = gestureArea;
+    this.scaleElement = scaleElement;
+    this.gestureArea.style.touchAction = 'none';
+    this.pinchStartCallback = pinchStartCallback;
+    this.pinchEndCallback = pinchEndCallback;
+    this.dragStartCallback = dragStartCallback;
+    this.dragEndCallback = dragEndCallback;
+    this.zoomOutLimit = zoomOutLimit;
+    this.zoomInLimit = zoomInLimit;
+    this.scale = 1;
+    this.resetTimeout;
+    this.interactInstance = interact$1(this.gestureArea);
+    this.startTouch();
+  }
+  /**
+   * Enable Touch Events with interact-js
+   */
+
+
+  _createClass(Touch, [{
+    key: "startTouch",
+    value: function startTouch() {
+      var _this = this;
+
+      // Start interactjs
+      this.interactInstance.gesturable({
+        onstart: function onstart(event) {
+          clearTimeout(_this.resetTimeout);
+
+          _this.scaleElement.classList.remove('reset');
+
+          _this.pinchStartCallback();
+        },
+        onmove: function onmove(event) {
+          _this.dragMoveListener(event);
+
+          var currentScale = event.scale * _this.scale;
+
+          if (currentScale > _this.zoomInLimit) {
+            _this.setMaxScale();
+
+            return;
+          }
+
+          if (currentScale < _this.zoomOutLimit) {
+            _this.resetScale();
+
+            return;
+          }
+
+          _this.scaleElement.style.webkitTransform = _this.scaleElement.style.transform = "scale(".concat(currentScale, ")");
+        },
+        onend: function onend(event) {
+          _this.scale = _this.scale * event.scale;
+
+          _this.scaleElement.classList.add('reset');
+
+          _this.pinchEndCallback();
+        }
+      }).draggable({
+        inertia: true,
+        modifiers: [interact$1.modifiers.restrict({
+          restriction: 'parent',
+          endOnly: true,
+          elementRect: {
+            top: 0,
+            left: 0,
+            bottom: 1,
+            right: 1
+          }
+        })],
+        autoScroll: true,
+        onstart: function onstart() {
+          _this.dragStartCallback();
+        },
+        onmove: this.dragMoveListener,
+        onend: function onend() {
+          _this.dragEndCallback();
+        }
+      });
+    }
+    /**
+     * Add interact-js event listeners.
+     */
+
+  }, {
+    key: "enableTouch",
+    value: function enableTouch() {
+      this.interactInstance.gesturable(true).draggable(true);
+    }
+    /**
+     * Remove interact-js event listeners.
+     */
+
+  }, {
+    key: "disableTouch",
+    value: function disableTouch() {
+      this.interactInstance.gesturable(false).draggable(false);
+    }
+    /**
+     * Set scaleElement's scale to max.
+     */
+
+  }, {
+    key: "setMaxScale",
+    value: function setMaxScale() {
+      this.scaleElement.style.webkitTransform = this.scaleElement.style.transform = "scale(".concat(this.zoomInLimit, ")");
+      this.scale = this.zoomInLimit;
+    }
+    /**
+    * Reset Scale
+    */
+
+  }, {
+    key: "resetScale",
+    value: function resetScale() {
+      this.scaleElement.style.webkitTransform = this.scaleElement.style.transform = 'scale(1)';
+      this.scale = 1;
+    }
+    /**
+     * Reset Position
+     */
+
+  }, {
+    key: "resetPosition",
+    value: function resetPosition() {
+      this.gestureArea.style.webkitTransform = this.gestureArea.style.transform = '';
+      this.gestureArea.setAttribute('data-x', 0);
+      this.gestureArea.setAttribute('data-y', 0);
+    }
+    /**
+     * Reset Scale and Position
+     */
+
+  }, {
+    key: "resetTransform",
+    value: function resetTransform() {
+      this.resetScale();
+      this.resetPosition();
+    }
+    /**
+    * @param {Event} event
+    */
+
+  }, {
+    key: "dragMoveListener",
+    value: function dragMoveListener(event) {
+      var target = event.target;
+      var x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
+      var y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
+      target.style.webkitTransform = target.style.transform = "translate(".concat(x, "px, ").concat(y, "px)");
+      target.setAttribute('data-x', x);
+      target.setAttribute('data-y', y);
+    }
+  }]);
+
+  return Touch;
+}();
+
+/**
  * @class Attacher
  */
 
@@ -9634,32 +9826,40 @@ function () {
         target = _ref$target === void 0 ? null : _ref$target,
         _ref$debug = _ref.debug,
         debug = _ref$debug === void 0 ? false : _ref$debug,
+        _ref$styles = _ref.styles;
+    _ref$styles = _ref$styles === void 0 ? {} : _ref$styles;
+    var _ref$styles$transitio = _ref$styles.transition,
+        transition = _ref$styles$transitio === void 0 ? 1 : _ref$styles$transitio,
         _ref$posPriority = _ref.posPriority,
         posPriority = _ref$posPriority === void 0 ? 'top' : _ref$posPriority,
-        _ref$transition = _ref.transition,
-        transition = _ref$transition === void 0 ? 1 : _ref$transition,
-        _ref$offset = _ref.offset,
-        offset = _ref$offset === void 0 ? {
-      inner: 10,
-      outer: 20
-    } : _ref$offset,
-        _ref$bPadding = _ref.bPadding,
-        bPadding = _ref$bPadding === void 0 ? {
-      left: 25,
-      top: 50
-    } : _ref$bPadding,
+        _ref$padding = _ref.padding;
+    _ref$padding = _ref$padding === void 0 ? {} : _ref$padding;
+    var _ref$padding$x = _ref$padding.x,
+        paddingX = _ref$padding$x === void 0 ? 10 : _ref$padding$x,
+        _ref$padding$y = _ref$padding.y,
+        paddingY = _ref$padding$y === void 0 ? 20 : _ref$padding$y,
+        _ref$bPadding = _ref.bPadding;
+    _ref$bPadding = _ref$bPadding === void 0 ? {} : _ref$bPadding;
+    var _ref$bPadding$x = _ref$bPadding.x,
+        bPaddingX = _ref$bPadding$x === void 0 ? 25 : _ref$bPadding$x,
+        _ref$bPadding$y = _ref$bPadding.y,
+        bPaddingY = _ref$bPadding$y === void 0 ? 50 : _ref$bPadding$y,
         _ref$watchRefreshSeco = _ref.watchRefreshSeconds,
         watchRefreshSeconds = _ref$watchRefreshSeco === void 0 ? .5 : _ref$watchRefreshSeco,
-        _ref$touch = _ref.touch,
-        touch = _ref$touch === void 0 ? {
-      canZoom: true,
-      canPan: true
-    } : _ref$touch,
-        _ref$zoom = _ref.zoom,
-        zoom = _ref$zoom === void 0 ? {
-      zoomOutLimit: 1,
-      zoomInLimit: 7
-    } : _ref$zoom;
+        _ref$touch = _ref.touch;
+    _ref$touch = _ref$touch === void 0 ? {} : _ref$touch;
+    var _ref$touch$zoom = _ref$touch.zoom;
+    _ref$touch$zoom = _ref$touch$zoom === void 0 ? {} : _ref$touch$zoom;
+    var _ref$touch$zoom$enabl = _ref$touch$zoom.enable,
+        canZoom = _ref$touch$zoom$enabl === void 0 ? true : _ref$touch$zoom$enabl,
+        _ref$touch$zoom$min = _ref$touch$zoom.min,
+        zoomOutLimit = _ref$touch$zoom$min === void 0 ? 1 : _ref$touch$zoom$min,
+        _ref$touch$zoom$max = _ref$touch$zoom.max,
+        zoomInLimit = _ref$touch$zoom$max === void 0 ? 7 : _ref$touch$zoom$max,
+        _ref$touch$pan = _ref$touch.pan;
+    _ref$touch$pan = _ref$touch$pan === void 0 ? {} : _ref$touch$pan;
+    var _ref$touch$pan$enable = _ref$touch$pan.enable,
+        canPan = _ref$touch$pan$enable === void 0 ? true : _ref$touch$pan$enable;
 
     _classCallCheck(this, Attacher);
 
@@ -9673,51 +9873,93 @@ function () {
     this.debug = debug;
     this.posPriority = posPriority;
     this.transition = transition;
-    this.offset = offset;
-    this.bPadding = bPadding;
+    this.paddingX = paddingX;
+    this.paddingY = paddingY;
+    this.bPaddingX = bPaddingX;
+    this.bPaddingY = bPaddingY;
     this.forcedPosPriority = false;
     this.watchRefreshSeconds = watchRefreshSeconds;
     this.windowWidth = window.innerWidth;
-    var _touch$canZoom = touch.canZoom,
-        canZoom = _touch$canZoom === void 0 ? true : _touch$canZoom,
-        _touch$canPan = touch.canPan,
-        canPan = _touch$canPan === void 0 ? true : _touch$canPan;
     this.canZoom = canZoom;
     this.canPan = canPan;
-    var _zoom$zoomOutLimit = zoom.zoomOutLimit,
-        zoomOutLimit = _zoom$zoomOutLimit === void 0 ? 1 : _zoom$zoomOutLimit,
-        _zoom$zoomInLimit = zoom.zoomInLimit,
-        zoomInLimit = _zoom$zoomInLimit === void 0 ? 7 : _zoom$zoomInLimit;
     this.zoomOutLimit = zoomOutLimit;
     this.zoomInLimit = zoomInLimit;
+    this.setTouch();
     /**
      * Bind reference to target if target exists.
      */
 
-    if (target) this.bind(target); //
-
-    interact$1(this.reference).draggable({
-      onmove: function onmove(event) {
-        console.log(event.pageX, event.pageY);
-      }
-    });
+    if (target) this.bind(target);
   }
   /**
-   * Binds reference element to target element.
-   * @arg {Element} target could be a new target element.
+   * @arg {Object} touch options.
    */
 
 
   _createClass(Attacher, [{
+    key: "setTouch",
+    value: function setTouch() {
+      if (this.canZoom || this.canPan) {
+        this.createTouchSurface();
+        this.createTouchInstance();
+      }
+    }
+    /**
+     * Convert reference object to touch surface.
+     */
+
+  }, {
+    key: "createTouchSurface",
+    value: function createTouchSurface() {
+      this.content = this.reference;
+      this.reference = document.createElement('div');
+      document.body.appendChild(this.reference);
+      this.reference.appendChild(this.content);
+    }
+    /**
+     * Create Touch instance
+     */
+
+  }, {
+    key: "createTouchInstance",
+    value: function createTouchInstance() {
+      var _ref2,
+          _this = this;
+
+      this.Touch = new Touch(this.reference, this.content, {
+        zoom: (_ref2 = {}, this.zoomOutLimit = _ref2.zoomOutLimit, this.zoomInLimit = _ref2.zoomInLimit, _ref2),
+        callbacks: {
+          pinchStartCallback: function pinchStartCallback() {
+            _this.unsetTransitionStyle();
+          },
+          pinchEndCallback: function pinchEndCallback() {
+            _this.setTransitionStyle();
+          },
+          dragStartCallback: function dragStartCallback() {
+            _this.unsetTransitionStyle();
+          },
+          dragEndCallback: function dragEndCallback() {
+            _this.setTransitionStyle();
+          }
+        }
+      });
+    }
+    /**
+     * Binds reference element to target element.
+     * @arg {Element} target could be a new target element.
+     */
+
+  }, {
     key: "bind",
     value: function bind(target) {
-      var _this = this;
+      var _this2 = this;
 
       this.target = target;
       this.setStyles();
+      if (this.Touch) this.Touch.resetTransform();
       setTimeout(function () {
-        _this.activate();
-      }, 100);
+        _this2.activate();
+      }, 10);
       if (this.debug) console.log("Attacher bind method fired.");
     }
     /**
@@ -9739,14 +9981,15 @@ function () {
   }, {
     key: "activate",
     value: function activate() {
-      var _this2 = this;
+      var _this3 = this;
 
       this.switchFocus();
       this.refresh();
       setTimeout(function () {
-        _this2.setTransitionStyle();
+        _this3.setTransitionStyle();
       }, 100);
       this.startWatch();
+      if (this.Touch) this.Touch.enableTouch();
     }
     /**
      * Make reference invisible. Stop watching.
@@ -9758,6 +10001,7 @@ function () {
       this.reference.style.transition = '';
       this.reference.style.left = '-100%';
       this.stopWatch();
+      if (this.Touch) this.Touch.disableTouch();
     }
     /**
      * Switch focus function
@@ -9793,8 +10037,9 @@ function () {
       this.reference.style.top = '';
     }
     /**
-     * Set reference's default transition
+     * Set reference and content's default transition
      * @arg {Element} reference
+     * @arg {Element} content
      * @arg {Float} transition
      */
 
@@ -9802,8 +10047,24 @@ function () {
     key: "setTransitionStyle",
     value: function setTransitionStyle() {
       var reference = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.reference;
-      var transition = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this.transition;
+      var content = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this.content;
+      var transition = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : this.transition;
       reference.style.transition = "".concat(transition, "s");
+      if (this.touch) content.style.transition = "".concat(transition, "s");
+    }
+    /**
+     * Unset reference and content's default transition
+     * @arg {Element} reference
+     * @arg {Element} content
+     */
+
+  }, {
+    key: "unsetTransitionStyle",
+    value: function unsetTransitionStyle() {
+      var reference = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.reference;
+      var content = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this.content;
+      reference.style.transition = '';
+      if (this.touch) content.style.transition = '';
     }
     /**
      * Refresh position of reference element.
@@ -9830,7 +10091,7 @@ function () {
   }, {
     key: "startWatch",
     value: function startWatch() {
-      var _this3 = this;
+      var _this4 = this;
 
       /**
        * Check if event listeners assigned.
@@ -9841,9 +10102,9 @@ function () {
        */
 
       document.addEventListener('scroll', this.scrollWatcher = function () {
-        if (!_this3.sleepMode) _this3.autoRefresh();
+        if (!_this4.sleepMode) _this4.autoRefresh();
 
-        _this3.switchToSleepMode();
+        _this4.switchToSleepMode();
       }, {
         passive: true
       });
@@ -9852,28 +10113,28 @@ function () {
        */
 
       window.addEventListener('resize', this.resizeWatcher = function () {
-        if (_this3.windowWidth == window.innerWidth) return;
-        if (_this3.debug) console.warn('Document resized.');
-        _this3.reference.style.display = 'none';
+        if (_this4.windowWidth == window.innerWidth) return;
+        if (_this4.debug) console.warn('Document resized.');
+        _this4.reference.style.display = 'none';
 
-        _this3.resetStyles();
+        _this4.resetStyles();
 
         setTimeout(function () {
-          _this3.reference.style.display = '';
+          _this4.reference.style.display = '';
 
-          _this3.setStyles();
+          _this4.setStyles();
 
-          _this3.refresh();
+          _this4.refresh();
         }, 100);
         setTimeout(function () {
-          _this3.setTransitionStyle();
+          _this4.setTransitionStyle();
         }, 200);
-        _this3.windowWidth = window.innerWidth;
-        if (_this3.debug) console.log('new screen width set to default');
+        _this4.windowWidth = window.innerWidth;
+        if (_this4.debug) console.log('new screen width set to default');
       });
       document.addEventListener('blurAttacher', this.blurAttacher = function () {
-        _this3.reference.style.zIndex = 1;
-        if (_this3.debug) console.log('blurAttacher event fired.');
+        _this4.reference.style.zIndex = 1;
+        if (_this4.debug) console.log('blurAttacher event fired.');
       });
       /**
        * Register touch events
@@ -9902,7 +10163,7 @@ function () {
   }, {
     key: "autoRefresh",
     value: function autoRefresh() {
-      var _this4 = this;
+      var _this5 = this;
 
       if (this.checkBleedingTimer) return;
 
@@ -9911,11 +10172,11 @@ function () {
       }
       if (this.debug) console.log('Refresh requested.');
       setTimeout(function () {
-        _this4.checkBleedingTimer = false;
+        _this5.checkBleedingTimer = false;
 
-        _this4.refresh();
+        _this5.refresh();
 
-        if (_this4.debug) console.log('Refreshed.');
+        if (_this5.debug) console.log('Refreshed.');
       }, this.watchRefreshSeconds * 1000);
       this.checkBleedingTimer = true;
     }
@@ -9953,6 +10214,7 @@ function () {
       var positionX = this.offsetPositionX(coords.left + window.scrollX);
       var positionY = this.offsetPositionY(coords.top + window.scrollY);
       this.targetPosY = positionY;
+      if (this.Touch) this.Touch.resetTransform();
       return {
         left: positionX,
         top: positionY
@@ -9986,14 +10248,14 @@ function () {
 
       var bodyWidth = window.innerWidth;
 
-      if (newPosition + this.reference.offsetWidth + this.offset.outer > bodyWidth) {
+      if (newPosition + this.reference.offsetWidth + this.paddingX > bodyWidth) {
         if (this.debug) console.log('Reference bleeds from right.');
-        return bodyWidth - this.reference.offsetWidth - this.offset.outer;
+        return bodyWidth - this.reference.offsetWidth - this.paddingX;
       }
 
-      if (newPosition - this.offset.outer < 0) {
+      if (newPosition - this.paddingX < 0) {
         if (this.debug) console.log('Reference bleeds from left.');
-        return 0 + this.offset.outer;
+        return 0 + this.paddingX;
       }
 
       return newPosition;
@@ -10042,11 +10304,11 @@ function () {
           break;
 
         case 'top':
-          newPosition = position - this.reference.offsetHeight - this.offset.inner;
+          newPosition = position - this.reference.offsetHeight - this.paddingY;
           break;
 
         case 'bottom':
-          newPosition = position + this.target.offsetHeight + this.offset.inner;
+          newPosition = position + this.target.offsetHeight + this.paddingY;
           break;
       }
 
@@ -10063,7 +10325,7 @@ function () {
     key: "checkBleedingY",
     value: function checkBleedingY(position) {
       var topBoundary = window.scrollY;
-      var refTopBoundary = position - this.bPadding.top;
+      var refTopBoundary = position - this.bPaddingY;
 
       if (topBoundary >= refTopBoundary) {
         if (this.debug) console.log('Reference bleeds from top.');
@@ -10072,7 +10334,7 @@ function () {
       }
 
       var bottomBoundary = topBoundary + window.innerHeight;
-      var refBottomBoundary = position + this.reference.offsetHeight + this.bPadding.top;
+      var refBottomBoundary = position + this.reference.offsetHeight + this.bPaddingY;
 
       if (refBottomBoundary > bottomBoundary) {
         if (this.debug) console.log('Reference bleeds from bottom.');
@@ -10096,29 +10358,28 @@ function () {
  */
 
 var reference = document.querySelector('.reference--interactive');
+var referenceSurface = document.querySelector('.reference-touch');
 var targets = document.querySelectorAll('.target');
 /**
  * Create interactive attacher example. (Only for demonstration.)
  */
 
 var attacher = new Attacher(reference, {
+  touchSurface: referenceSurface,
   target: targets[0],
   posPriority: 'top',
   transition: 1,
-  debug: true,
-  touch: {
-    canZoom: true,
-    canPan: false
-  }
+  debug: true
 });
 /**
  * Create static attacher example.
  */
 
-new Attacher(document.querySelector('.reference--static'), {
+/* new Attacher(document.querySelector('.reference--static'), {
   target: document.querySelector('.target--static'),
-  debug: true
-});
+  debug: true,
+}); */
+
 /**
  * Click and key events for debugging.
  */

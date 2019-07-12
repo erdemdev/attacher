@@ -4,9 +4,9 @@
 import '../sass/main.scss';
 
 /**
- * Import Helper Classes
+ * Import Sub Classes
  */
-import interact from 'interactjs';
+import Touch from './modules/touch';
 
 /**
  * @class Attacher
@@ -30,13 +30,29 @@ export default class Attacher {
   constructor(reference, {
     target = null,
     debug = false,
+    styles: {
+      transition = 1,
+    } = {},
     posPriority = 'top',
-    transition = 1,
-    offset = {inner: 10, outer: 20},
-    bPadding = {left: 25, top: 50},
+    padding: {
+      x: paddingX = 10,
+      y: paddingY = 20,
+    } = {},
+    bPadding: {
+      x: bPaddingX = 25,
+      y: bPaddingY = 50,
+    } = {},
     watchRefreshSeconds = .5,
-    touch = {canZoom: true, canPan: true},
-    zoom = {zoomOutLimit: 1, zoomInLimit: 7},
+    touch: {
+      zoom: {
+        enable: canZoom = true,
+        min: zoomOutLimit = 1,
+        max: zoomInLimit = 7,
+      } = {},
+      pan: {
+        enable: canPan = true,
+      } = {},
+    } = {},
   }) {
     if (debug) console.warn('attacher component created.', this);
     /**
@@ -47,25 +63,66 @@ export default class Attacher {
     this.debug = debug;
     this.posPriority = posPriority;
     this.transition = transition;
-    this.offset = offset;
-    this.bPadding = bPadding;
+    this.paddingX = paddingX;
+    this.paddingY = paddingY;
+    this.bPaddingX = bPaddingX;
+    this.bPaddingY = bPaddingY;
     this.forcedPosPriority = false;
     this.watchRefreshSeconds = watchRefreshSeconds;
     this.windowWidth = window.innerWidth;
-    const {canZoom = true, canPan = true} = touch;
     this.canZoom = canZoom;
     this.canPan = canPan;
-    const {zoomOutLimit = 1, zoomInLimit = 7} = zoom;
     this.zoomOutLimit = zoomOutLimit;
     this.zoomInLimit = zoomInLimit;
+    this.setTouch();
     /**
      * Bind reference to target if target exists.
      */
     if (target) this.bind(target);
-    //
-    interact(this.reference).draggable({
-      onmove(event) {
-        console.log(event.pageX, event.pageY);
+  }
+
+  /**
+   * @arg {Object} touch options.
+   */
+  setTouch() {
+    if (this.canZoom || this.canPan) {
+      this.createTouchSurface();
+      this.createTouchInstance();
+    }
+  }
+
+  /**
+   * Convert reference object to touch surface.
+   */
+  createTouchSurface() {
+    this.content = this.reference;
+    this.reference = document.createElement('div');
+    document.body.appendChild(this.reference);
+    this.reference.appendChild(this.content);
+  }
+
+  /**
+   * Create Touch instance
+   */
+  createTouchInstance() {
+    this.Touch = new Touch(this.reference, this.content, {
+      zoom: {
+        zoomOutLimit: this.zoomOutLimit,
+        zoomInLimit: this.zoomInLimit,
+      } = {},
+      callbacks: {
+        pinchStartCallback: () => {
+          this.unsetTransitionStyle();
+        },
+        pinchEndCallback: () => {
+          this.setTransitionStyle();
+        },
+        dragStartCallback: () => {
+          this.unsetTransitionStyle();
+        },
+        dragEndCallback: () => {
+          this.setTransitionStyle();
+        },
       },
     });
   }
@@ -77,9 +134,10 @@ export default class Attacher {
   bind(target) {
     this.target = target;
     this.setStyles();
+    if (this.Touch) this.Touch.resetTransform();
     setTimeout(() => {
       this.activate();
-    }, 100);
+    }, 10);
     if (this.debug) console.log(`Attacher bind method fired.`);
   }
 
@@ -103,6 +161,7 @@ export default class Attacher {
       this.setTransitionStyle();
     }, 100);
     this.startWatch();
+    if (this.Touch) this.Touch.enableTouch();
   }
 
   /**
@@ -112,6 +171,7 @@ export default class Attacher {
     this.reference.style.transition = '';
     this.reference.style.left = '-100%';
     this.stopWatch();
+    if (this.Touch) this.Touch.disableTouch();
   }
 
   /**
@@ -142,12 +202,31 @@ export default class Attacher {
   }
 
   /**
-   * Set reference's default transition
+   * Set reference and content's default transition
    * @arg {Element} reference
+   * @arg {Element} content
    * @arg {Float} transition
    */
-  setTransitionStyle(reference = this.reference, transition = this.transition) {
+  setTransitionStyle(
+      reference = this.reference,
+      content = this.content,
+      transition = this.transition
+  ) {
     reference.style.transition = `${transition}s`;
+    if (this.touch) content.style.transition = `${transition}s`;
+  }
+
+  /**
+   * Unset reference and content's default transition
+   * @arg {Element} reference
+   * @arg {Element} content
+   */
+  unsetTransitionStyle(
+      reference = this.reference,
+      content = this.content,
+  ) {
+    reference.style.transition = '';
+    if (this.touch) content.style.transition = '';
   }
 
   /**
@@ -268,6 +347,7 @@ export default class Attacher {
     const positionY =
     this.offsetPositionY(coords.top + window.scrollY);
     this.targetPosY = positionY;
+    if (this.Touch) this.Touch.resetTransform();
     return {
       left: positionX,
       top: positionY,
@@ -297,13 +377,13 @@ export default class Attacher {
      */
     const bodyWidth = window.innerWidth;
     if (newPosition + this.reference.offsetWidth +
-      this.offset.outer > bodyWidth) {
+      this.paddingX > bodyWidth) {
       if (this.debug) console.log('Reference bleeds from right.');
-      return bodyWidth - this.reference.offsetWidth - this.offset.outer;
+      return bodyWidth - this.reference.offsetWidth - this.paddingX;
     }
-    if (newPosition - this.offset.outer < 0) {
+    if (newPosition - this.paddingX < 0) {
       if (this.debug) console.log('Reference bleeds from left.');
-      return 0 + this.offset.outer;
+      return 0 + this.paddingX;
     }
     return newPosition;
   }
@@ -342,10 +422,10 @@ export default class Attacher {
         break;
       case 'top':
         newPosition = position - this.reference.offsetHeight -
-        this.offset.inner;
+        this.paddingY;
         break;
       case 'bottom':
-        newPosition = position + this.target.offsetHeight + this.offset.inner;
+        newPosition = position + this.target.offsetHeight + this.paddingY;
         break;
     }
     return newPosition;
@@ -359,7 +439,7 @@ export default class Attacher {
    */
   checkBleedingY(position) {
     const topBoundary = window.scrollY;
-    const refTopBoundary = position - this.bPadding.top;
+    const refTopBoundary = position - this.bPaddingY;
     if (topBoundary >= refTopBoundary ) {
       if (this.debug) console.log('Reference bleeds from top.');
       this.forcedPosPriority = 'bottom';
@@ -367,7 +447,7 @@ export default class Attacher {
     }
     const bottomBoundary = topBoundary + window.innerHeight;
     const refBottomBoundary = position + this.reference.offsetHeight +
-    this.bPadding.top;
+    this.bPaddingY;
     if (refBottomBoundary > bottomBoundary) {
       if (this.debug) console.log('Reference bleeds from bottom.');
       this.forcedPosPriority = 'top';

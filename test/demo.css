@@ -72,8 +72,7 @@ html, body {
   border: 5px solid #4e4e4e;
   display: -webkit-box;
   display: flex;
-  box-shadow: 0px 10px 25px -15px black;
-  cursor: pointer; }
+  box-shadow: 0px 10px 25px -15px black; }
   .reference--static {
     width: 200px;
     height: 100px; }

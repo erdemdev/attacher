@@ -12,29 +12,27 @@ import Attacher from './main';
  * Get reference and target elements.
  */
 const reference = document.querySelector('.reference--interactive');
+const referenceSurface = document.querySelector('.reference-touch');
 const targets = document.querySelectorAll('.target');
 
 /**
  * Create interactive attacher example. (Only for demonstration.)
  */
 const attacher = new Attacher(reference, {
+  touchSurface: referenceSurface,
   target: targets[0],
   posPriority: 'top',
   transition: 1,
   debug: true,
-  touch: {
-    canZoom: true,
-    canPan: false,
-  },
 });
 
 /**
  * Create static attacher example.
  */
-new Attacher(document.querySelector('.reference--static'), {
+/* new Attacher(document.querySelector('.reference--static'), {
   target: document.querySelector('.target--static'),
   debug: true,
-});
+}); */
 
 /**
  * Click and key events for debugging.
