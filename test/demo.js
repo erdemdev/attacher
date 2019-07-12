@@ -9602,7 +9602,7 @@ return _$index_29;
 });
 
 
-
+//# sourceMappingURL=interact.js.map
 });
 
 var interact$1 = unwrapExports(interact);
@@ -9631,7 +9631,7 @@ function () {
    */
   function Attacher(reference, _ref) {
     var _ref$target = _ref.target,
-        target = _ref$target === void 0 ? undefined : _ref$target,
+        target = _ref$target === void 0 ? null : _ref$target,
         _ref$debug = _ref.debug,
         debug = _ref$debug === void 0 ? false : _ref$debug,
         _ref$posPriority = _ref.posPriority,

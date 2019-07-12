@@ -28,7 +28,7 @@ export default class Attacher {
    * @prop {Object} zoom for handling zoom max ratio and lock.
    */
   constructor(reference, {
-    target = undefined,
+    target = null,
     debug = false,
     posPriority = 'top',
     transition = 1,
