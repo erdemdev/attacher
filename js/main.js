@@ -17,15 +17,14 @@ export default class Attacher {
    * @constructor
    * @arg {Element} reference element.
    * @arg {Object} options of attacher.
-   * @prop {Element} target element.
-   * @prop {Boolean} debug mode.
-   * @prop {String} posPriority ("top", "bottom", "center") of target.
-   * @prop {Float} transition seconds.
-   * @prop {Object} offset of reference to target.
-   * @prop {Object} bPadding padding of boundary.
-   * @prop {Float} watchRefreshSeconds of attacher.
-   * @prop {Object} touch defines touch abilities.
-   * @prop {Object} zoom for handling zoom max ratio and lock.
+   *  @arg {Element} target element.
+   *  @arg {Boolean} debug mode.
+   *  @arg {String} posPriority ("top", "bottom", "center") of target.
+   *  @arg {Float} transition seconds.
+   *  @arg {Object} padding of reference to target.
+   *  @arg {Object} bPadding padding of boundary.
+   *  @arg {Float} watchRefreshSeconds of attacher.
+   *  @arg {Object} touch defines touch abilities.
    */
   constructor(reference, {
     target = null,
@@ -107,9 +106,13 @@ export default class Attacher {
   createTouchInstance() {
     this.Touch = new Touch(this.reference, this.content, {
       zoom: {
-        zoomOutLimit: this.zoomOutLimit,
-        zoomInLimit: this.zoomInLimit,
+        enable: this.canZoom,
+        min: this.zoomOutLimit,
+        man: this.zoomInLimit,
       } = {},
+      pan: {
+        enable: this.canPan,
+      },
       callbacks: {
         pinchStartCallback: () => {
           this.unsetTransitionStyle();

@@ -12,8 +12,12 @@ export default class Touch {
    */
   constructor(gestureArea, scaleElement, {
     zoom: {
-      zoomOutLimit = 1,
-      zoomInLimit = 7,
+      enable: canZoom = true,
+      min: zoomOutLimit = 1,
+      max: zoomInLimit = 7,
+    } = {},
+    pan: {
+      enable: canPan = true,
     } = {},
     callbacks: {
       pinchStartCallback = () => {},
@@ -29,8 +33,10 @@ export default class Touch {
     this.pinchEndCallback = pinchEndCallback;
     this.dragStartCallback = dragStartCallback;
     this.dragEndCallback = dragEndCallback;
+    this.canZoom = canZoom;
     this.zoomOutLimit = zoomOutLimit;
     this.zoomInLimit = zoomInLimit;
+    this.canPan = canPan;
     this.scale = 1;
     this.resetTimeout;
     this.interactInstance = interact(this.gestureArea);
@@ -42,71 +48,77 @@ export default class Touch {
    */
   startTouch() {
     // Start interactjs
-    this.interactInstance.gesturable({
-      onstart: (event) => {
-        clearTimeout(this.resetTimeout);
-        this.scaleElement.classList.remove('reset');
-        this.pinchStartCallback();
-      },
-      onmove: (event) => {
-        this.dragMoveListener(event);
-        const currentScale = event.scale * this.scale;
-
-        if (currentScale > this.zoomInLimit) {
-          this.setMaxScale();
-          return;
-        }
-
-        if (currentScale < this.zoomOutLimit) {
-          this.resetScale();
-          return;
-        }
-
-        this.scaleElement.style.webkitTransform =
-        this.scaleElement.style.transform = `scale(${currentScale})`;
-      },
-      onend: (event) => {
-        this.scale = this.scale * event.scale;
-        this.scaleElement.classList.add('reset');
-        this.pinchEndCallback();
-      },
-    }).draggable({
-      inertia: true,
-      modifiers: [
-        interact.modifiers.restrict({
-          restriction: 'parent',
-          endOnly: true,
-          elementRect: {
-            top: 0,
-            left: 0,
-            bottom: 1,
-            right: 1,
+    this.interactInstance
+        .gesturable(this.canZoom ? {
+          onstart: (event) => {
+            clearTimeout(this.resetTimeout);
+            this.scaleElement.classList.remove('reset');
+            this.pinchStartCallback();
           },
-        }),
-      ],
-      autoScroll: true,
-      onstart: () => {
-        this.dragStartCallback();
-      },
-      onmove: this.dragMoveListener,
-      onend: () => {
-        this.dragEndCallback();
-      },
-    });
+          onmove: (event) => {
+            this.dragMoveListener(event);
+            const currentScale = event.scale * this.scale;
+
+            if (currentScale > this.zoomInLimit) {
+              this.setMaxScale();
+              return;
+            }
+
+            if (currentScale < this.zoomOutLimit) {
+              this.resetScale();
+              return;
+            }
+
+            this.scaleElement.style.webkitTransform =
+            this.scaleElement.style.transform = `scale(${currentScale})`;
+          },
+          onend: (event) => {
+            this.scale = this.scale * event.scale;
+            this.scaleElement.classList.add('reset');
+            this.pinchEndCallback();
+          },
+        } : '')
+        .draggable(this.canPan ? {
+          inertia: true,
+          modifiers: [
+            interact.modifiers.restrict({
+              restriction: 'parent',
+              endOnly: true,
+              elementRect: {
+                top: 0,
+                left: 0,
+                bottom: 1,
+                right: 1,
+              },
+            }),
+          ],
+          autoScroll: true,
+          onstart: () => {
+            this.dragStartCallback();
+          },
+          onmove: this.dragMoveListener,
+          onend: () => {
+            this.dragEndCallback();
+          },
+        } : '');
   }
 
   /**
    * Add interact-js event listeners.
    */
   enableTouch() {
-    this.interactInstance.gesturable(true).draggable(true);
+    this.interactInstance
+        .gesturable(this.canZoom ? true : '')
+        .draggable(this.canPan ? true : '');
   }
 
   /**
    * Remove interact-js event listeners.
    */
   disableTouch() {
-    this.interactInstance.gesturable(false).draggable(false);
+    this.interactInstance
+        .gesturable(false)
+        .draggable(false);
   }
 
   /**

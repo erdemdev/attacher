@@ -9623,10 +9623,16 @@ function () {
   function Touch(gestureArea, scaleElement, _ref) {
     var _ref$zoom = _ref.zoom;
     _ref$zoom = _ref$zoom === void 0 ? {} : _ref$zoom;
-    var _ref$zoom$zoomOutLimi = _ref$zoom.zoomOutLimit,
-        zoomOutLimit = _ref$zoom$zoomOutLimi === void 0 ? 1 : _ref$zoom$zoomOutLimi,
-        _ref$zoom$zoomInLimit = _ref$zoom.zoomInLimit,
-        zoomInLimit = _ref$zoom$zoomInLimit === void 0 ? 7 : _ref$zoom$zoomInLimit,
+    var _ref$zoom$enable = _ref$zoom.enable,
+        canZoom = _ref$zoom$enable === void 0 ? true : _ref$zoom$enable,
+        _ref$zoom$min = _ref$zoom.min,
+        zoomOutLimit = _ref$zoom$min === void 0 ? 1 : _ref$zoom$min,
+        _ref$zoom$max = _ref$zoom.max,
+        zoomInLimit = _ref$zoom$max === void 0 ? 7 : _ref$zoom$max,
+        _ref$pan = _ref.pan;
+    _ref$pan = _ref$pan === void 0 ? {} : _ref$pan;
+    var _ref$pan$enable = _ref$pan.enable,
+        canPan = _ref$pan$enable === void 0 ? true : _ref$pan$enable,
         _ref$callbacks = _ref.callbacks;
     _ref$callbacks = _ref$callbacks === void 0 ? {} : _ref$callbacks;
     var _ref$callbacks$pinchS = _ref$callbacks.pinchStartCallback,
@@ -9647,8 +9653,10 @@ function () {
     this.pinchEndCallback = pinchEndCallback;
     this.dragStartCallback = dragStartCallback;
     this.dragEndCallback = dragEndCallback;
+    this.canZoom = canZoom;
     this.zoomOutLimit = zoomOutLimit;
     this.zoomInLimit = zoomInLimit;
+    this.canPan = canPan;
     this.scale = 1;
     this.resetTimeout;
     this.interactInstance = interact$1(this.gestureArea);
@@ -9665,7 +9673,7 @@ function () {
       var _this = this;
 
       // Start interactjs
-      this.interactInstance.gesturable({
+      this.interactInstance.gesturable(this.canZoom ? {
         onstart: function onstart(event) {
           clearTimeout(_this.resetTimeout);
 
@@ -9699,7 +9707,7 @@ function () {
 
           _this.pinchEndCallback();
         }
-      }).draggable({
+      } : '').draggable(this.canPan ? {
         inertia: true,
         modifiers: [interact$1.modifiers.restrict({
           restriction: 'parent',
@@ -9719,7 +9727,7 @@ function () {
         onend: function onend() {
           _this.dragEndCallback();
         }
-      });
+      } : '');
     }
     /**
      * Add interact-js event listeners.
@@ -9728,7 +9736,7 @@ function () {
   }, {
     key: "enableTouch",
     value: function enableTouch() {
-      this.interactInstance.gesturable(true).draggable(true);
+      this.interactInstance.gesturable(this.canZoom ? true : '').draggable(this.canPan ? true : '');
     }
     /**
      * Remove interact-js event listeners.
@@ -9811,15 +9819,14 @@ function () {
    * @constructor
    * @arg {Element} reference element.
    * @arg {Object} options of attacher.
-   * @prop {Element} target element.
-   * @prop {Boolean} debug mode.
-   * @prop {String} posPriority ("top", "bottom", "center") of target.
-   * @prop {Float} transition seconds.
-   * @prop {Object} offset of reference to target.
-   * @prop {Object} bPadding padding of boundary.
-   * @prop {Float} watchRefreshSeconds of attacher.
-   * @prop {Object} touch defines touch abilities.
-   * @prop {Object} zoom for handling zoom max ratio and lock.
+   *  @arg {Element} target element.
+   *  @arg {Boolean} debug mode.
+   *  @arg {String} posPriority ("top", "bottom", "center") of target.
+   *  @arg {Float} transition seconds.
+   *  @arg {Object} padding of reference to target.
+   *  @arg {Object} bPadding padding of boundary.
+   *  @arg {Float} watchRefreshSeconds of attacher.
+   *  @arg {Object} touch defines touch abilities.
    */
   function Attacher(reference, _ref) {
     var _ref$target = _ref.target,
@@ -9927,7 +9934,10 @@ function () {
           _this = this;
 
       this.Touch = new Touch(this.reference, this.content, {
-        zoom: (_ref2 = {}, this.zoomOutLimit = _ref2.zoomOutLimit, this.zoomInLimit = _ref2.zoomInLimit, _ref2),
+        zoom: (_ref2 = {}, this.canZoom = _ref2.enable, this.zoomOutLimit = _ref2.min, this.zoomInLimit = _ref2.man, _ref2),
+        pan: {
+          enable: this.canPan
+        },
         callbacks: {
           pinchStartCallback: function pinchStartCallback() {
             _this.unsetTransitionStyle();
