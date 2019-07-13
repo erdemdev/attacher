@@ -14,7 +14,8 @@ export default class Touch {
     zoom: {
       enable: canZoom = true,
       min: zoomOutLimit = 1,
-      max: zoomInLimit = 7,
+      max: zoomInLimit = 5,
+      threshold: zoomThreshold = 2.5,
     } = {},
     pan: {
       enable: canPan = true,
@@ -29,17 +30,19 @@ export default class Touch {
     this.gestureArea = gestureArea;
     this.scaleElement = scaleElement;
     this.gestureArea.style.touchAction = 'none';
+    this.canZoom = canZoom;
+    this.zoomOutLimit = zoomOutLimit;
+    this.zoomInLimit = zoomInLimit;
+    this.zoomThreshold = zoomThreshold;
+    this.zoomLockActive = false;
+    this.canPan = canPan;
     this.pinchStartCallback = pinchStartCallback;
     this.pinchEndCallback = pinchEndCallback;
     this.dragStartCallback = dragStartCallback;
     this.dragEndCallback = dragEndCallback;
-    this.canZoom = canZoom;
-    this.zoomOutLimit = zoomOutLimit;
-    this.zoomInLimit = zoomInLimit;
-    this.canPan = canPan;
     this.scale = 1;
     this.resetTimeout;
-    this.interactInstance = interact(this.gestureArea);
+    this.interactable = interact(this.gestureArea);
     this.startTouch();
   }
 
@@ -47,67 +50,77 @@ export default class Touch {
    * Enable Touch Events with interact-js
    */
   startTouch() {
-    // Start interactjs
-    this.interactInstance
-        .gesturable(this.canZoom ? {
-          onstart: (event) => {
-            clearTimeout(this.resetTimeout);
-            this.scaleElement.classList.remove('reset');
-            this.pinchStartCallback();
-          },
-          onmove: (event) => {
-            this.dragMoveListener(event);
-            const currentScale = event.scale * this.scale;
+    this.interactable.gesturable(this.canZoom ? {
+      onstart: (event) => {
+        clearTimeout(this.resetTimeout);
+        this.scaleElement.classList.remove('reset');
+        this.pinchStartCallback();
+      },
+      onmove: (event) => {
+        this.dragMoveListener(event);
+        const currentScale = event.scale * this.scale;
 
-            if (currentScale > this.zoomInLimit) {
-              this.setMaxScale();
-              return;
-            }
+        if (currentScale > this.zoomInLimit) {
+          this.setMaxScale();
+          return;
+        }
 
-            if (currentScale < this.zoomOutLimit) {
-              this.resetScale();
-              return;
-            }
+        if (currentScale < this.zoomOutLimit) {
+          this.resetScale();
+          return;
+        }
 
-            this.scaleElement.style.webkitTransform =
-            this.scaleElement.style.transform = `scale(${currentScale})`;
+        this.scaleElement.style.webkitTransform =
+        this.scaleElement.style.transform = `scale(${currentScale})`;
+      },
+      onend: (event) => {
+        this.scale = this.scale * event.scale;
+
+        if (this.scale > this.zoomThreshold && this.zoomLockActive == false) {
+          this.interactable.options.drag.modifiers[0].options.enabled = false;
+          this.zoomLockActive = true;
+        }
+
+        if (this.scale < this.zoomThreshold && this.zoomLockActive == true) {
+          this.interactable.options.drag.modifiers[0].options.enabled = true;
+          this.zoomLockActive = false;
+        }
+
+        this.scaleElement.classList.add('reset');
+        this.pinchEndCallback();
+      },
+    } : '');
+
+    this.interactable.draggable(this.canPan ? {
+      inertia: true,
+      modifiers: [
+        interact.modifiers.restrict({
+          restriction: 'parent',
+          endOnly: true,
+          elementRect: {
+            top: 0,
+            left: 0,
+            bottom: 1,
+            right: 1,
           },
-          onend: (event) => {
-            this.scale = this.scale * event.scale;
-            this.scaleElement.classList.add('reset');
-            this.pinchEndCallback();
-          },
-        } : '')
-        .draggable(this.canPan ? {
-          inertia: true,
-          modifiers: [
-            interact.modifiers.restrict({
-              restriction: 'parent',
-              endOnly: true,
-              elementRect: {
-                top: 0,
-                left: 0,
-                bottom: 1,
-                right: 1,
-              },
-            }),
-          ],
-          autoScroll: true,
-          onstart: () => {
-            this.dragStartCallback();
-          },
-          onmove: this.dragMoveListener,
-          onend: () => {
-            this.dragEndCallback();
-          },
-        } : '');
+        }),
+      ],
+      autoScroll: true,
+      onstart: () => {
+        this.dragStartCallback();
+      },
+      onmove: this.dragMoveListener,
+      onend: () => {
+        this.dragEndCallback();
+      },
+    } : '');
   }
 
   /**
    * Add interact-js event listeners.
    */
   enableTouch() {
-    this.interactInstance
+    this.interactable
         .gesturable(this.canZoom ? true : '')
         .draggable(this.canPan ? true : '');
   }
@@ -116,7 +129,7 @@ export default class Touch {
    * Remove interact-js event listeners.
    */
   disableTouch() {
-    this.interactInstance
+    this.interactable
         .gesturable(false)
         .draggable(false);
   }
@@ -169,7 +182,7 @@ export default class Touch {
     const y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
 
     target.style.webkitTransform =
-      target.style.transform = `translate(${x}px, ${y}px)`;
+    target.style.transform =`translate(${x}px, ${y}px)`;
 
     target.setAttribute('data-x', x);
     target.setAttribute('data-y', y);

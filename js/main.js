@@ -213,10 +213,11 @@ export default class Attacher {
   setTransitionStyle(
       reference = this.reference,
       content = this.content,
-      transition = this.transition
+      transition = this.transition,
   ) {
     reference.style.transition = `${transition}s`;
-    if (this.touch) content.style.transition = `${transition}s`;
+    if (this.Touch) content.style.transition = `${transition}s`;
+    console.log(content);
   }
 
   /**
@@ -229,7 +230,7 @@ export default class Attacher {
       content = this.content,
   ) {
     reference.style.transition = '';
-    if (this.touch) content.style.transition = '';
+    if (this.Touch) content.style.transition = '';
   }
 
   /**
@@ -365,6 +366,7 @@ export default class Attacher {
     this.reference.style.left = `${position.left}px`;
     this.reference.style.top = `${position.top}px`;
     this.reference.style.transform = '';
+    if (this.Touch) this.content.style.transform = '';
   }
 
   /**

@@ -9628,7 +9628,9 @@ function () {
         _ref$zoom$min = _ref$zoom.min,
         zoomOutLimit = _ref$zoom$min === void 0 ? 1 : _ref$zoom$min,
         _ref$zoom$max = _ref$zoom.max,
-        zoomInLimit = _ref$zoom$max === void 0 ? 7 : _ref$zoom$max,
+        zoomInLimit = _ref$zoom$max === void 0 ? 5 : _ref$zoom$max,
+        _ref$zoom$threshold = _ref$zoom.threshold,
+        zoomThreshold = _ref$zoom$threshold === void 0 ? 2.5 : _ref$zoom$threshold,
         _ref$pan = _ref.pan;
     _ref$pan = _ref$pan === void 0 ? {} : _ref$pan;
     var _ref$pan$enable = _ref$pan.enable,
@@ -9649,17 +9651,19 @@ function () {
     this.gestureArea = gestureArea;
     this.scaleElement = scaleElement;
     this.gestureArea.style.touchAction = 'none';
+    this.canZoom = canZoom;
+    this.zoomOutLimit = zoomOutLimit;
+    this.zoomInLimit = zoomInLimit;
+    this.zoomThreshold = zoomThreshold;
+    this.zoomLockActive = false;
+    this.canPan = canPan;
     this.pinchStartCallback = pinchStartCallback;
     this.pinchEndCallback = pinchEndCallback;
     this.dragStartCallback = dragStartCallback;
     this.dragEndCallback = dragEndCallback;
-    this.canZoom = canZoom;
-    this.zoomOutLimit = zoomOutLimit;
-    this.zoomInLimit = zoomInLimit;
-    this.canPan = canPan;
     this.scale = 1;
     this.resetTimeout;
-    this.interactInstance = interact$1(this.gestureArea);
+    this.interactable = interact$1(this.gestureArea);
     this.startTouch();
   }
   /**
@@ -9672,8 +9676,7 @@ function () {
     value: function startTouch() {
       var _this = this;
 
-      // Start interactjs
-      this.interactInstance.gesturable(this.canZoom ? {
+      this.interactable.gesturable(this.canZoom ? {
         onstart: function onstart(event) {
           clearTimeout(_this.resetTimeout);
 
@@ -9703,11 +9706,22 @@ function () {
         onend: function onend(event) {
           _this.scale = _this.scale * event.scale;
 
+          if (_this.scale > _this.zoomThreshold && _this.zoomLockActive == false) {
+            _this.interactable.options.drag.modifiers[0].options.enabled = false;
+            _this.zoomLockActive = true;
+          }
+
+          if (_this.scale < _this.zoomThreshold && _this.zoomLockActive == true) {
+            _this.interactable.options.drag.modifiers[0].options.enabled = true;
+            _this.zoomLockActive = false;
+          }
+
           _this.scaleElement.classList.add('reset');
 
           _this.pinchEndCallback();
         }
-      } : '').draggable(this.canPan ? {
+      } : '');
+      this.interactable.draggable(this.canPan ? {
         inertia: true,
         modifiers: [interact$1.modifiers.restrict({
           restriction: 'parent',
@@ -9736,7 +9750,7 @@ function () {
   }, {
     key: "enableTouch",
     value: function enableTouch() {
-      this.interactInstance.gesturable(this.canZoom ? true : '').draggable(this.canPan ? true : '');
+      this.interactable.gesturable(this.canZoom ? true : '').draggable(this.canPan ? true : '');
     }
     /**
      * Remove interact-js event listeners.
@@ -9745,7 +9759,7 @@ function () {
   }, {
     key: "disableTouch",
     value: function disableTouch() {
-      this.interactInstance.gesturable(false).draggable(false);
+      this.interactable.gesturable(false).draggable(false);
     }
     /**
      * Set scaleElement's scale to max.
@@ -10060,7 +10074,8 @@ function () {
       var content = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this.content;
       var transition = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : this.transition;
       reference.style.transition = "".concat(transition, "s");
-      if (this.touch) content.style.transition = "".concat(transition, "s");
+      if (this.Touch) content.style.transition = "".concat(transition, "s");
+      console.log(content);
     }
     /**
      * Unset reference and content's default transition
@@ -10074,7 +10089,7 @@ function () {
       var reference = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.reference;
       var content = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this.content;
       reference.style.transition = '';
-      if (this.touch) content.style.transition = '';
+      if (this.Touch) content.style.transition = '';
     }
     /**
      * Refresh position of reference element.
@@ -10241,6 +10256,7 @@ function () {
       this.reference.style.left = "".concat(position.left, "px");
       this.reference.style.top = "".concat(position.top, "px");
       this.reference.style.transform = '';
+      if (this.Touch) this.content.style.transform = '';
     }
     /**
      * check if X axis is out of border.
