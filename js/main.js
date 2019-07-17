@@ -217,7 +217,6 @@ export default class Attacher {
   ) {
     reference.style.transition = `${transition}s`;
     if (this.Touch) content.style.transition = `${transition}s`;
-    console.log(content);
   }
 
   /**

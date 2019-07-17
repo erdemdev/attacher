@@ -66,8 +66,8 @@ html, body {
 
 .reference {
   background-color: white;
-  min-width: 200px;
-  min-height: 100px;
+  min-width: 250px;
+  min-height: 125px;
   border-radius: 5px;
   border: 5px solid #4e4e4e;
   display: -webkit-box;

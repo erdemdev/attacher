@@ -9661,8 +9661,27 @@ function () {
     this.pinchEndCallback = pinchEndCallback;
     this.dragStartCallback = dragStartCallback;
     this.dragEndCallback = dragEndCallback;
-    this.scale = 1;
-    this.resetTimeout;
+    this.originalSize = {
+      width: scaleElement.offsetWidth,
+      height: scaleElement.offsetHeight
+    };
+    this.current = {
+      x: 0,
+      y: 0,
+      z: 1,
+      width: this.originalSize.width,
+      height: this.originalSize.height
+    };
+    this.last = {
+      x: this.current.x,
+      y: this.current.y,
+      z: this.current.z
+    };
+    this.pinchZoomOrigin = undefined;
+    this.pinchStart = {
+      x: undefined,
+      y: undefined
+    };
     this.interactable = interact$1(this.gestureArea);
     this.startTouch();
   }
@@ -9674,74 +9693,236 @@ function () {
   _createClass(Touch, [{
     key: "startTouch",
     value: function startTouch() {
+      this.activateZoomWatch();
+      this.activatePanWatch();
+    }
+    /**
+     * Interact-js zoom watch
+     */
+
+  }, {
+    key: "activateZoomWatch",
+    value: function activateZoomWatch() {
       var _this = this;
 
-      this.interactable.gesturable(this.canZoom ? {
-        onstart: function onstart(event) {
-          clearTimeout(_this.resetTimeout);
+      if (this.canZoom) {
+        this.interactable.gesturable({
+          onstart: function onstart(e) {
+            _this.pinchStartCallback();
+          },
+          onmove: function onmove(e) {
+            _this.current.x = _this.last.x + e.dx;
+            _this.last.x = _this.current.x;
+            _this.current.y = _this.last.y + e.dy;
+            _this.last.y = _this.current.y;
+            _this.current.z = _this.last.z * e.scale;
 
-          _this.scaleElement.classList.remove('reset');
+            _this.update(e);
+          },
+          onend: function onend() {
+            _this.last.z = _this.current.z;
 
-          _this.pinchStartCallback();
-        },
-        onmove: function onmove(event) {
-          _this.dragMoveListener(event);
+            _this.setMaxMinScale();
 
-          var currentScale = event.scale * _this.scale;
+            _this.switchZoomMode();
 
-          if (currentScale > _this.zoomInLimit) {
-            _this.setMaxScale();
-
-            return;
+            _this.pinchEndCallback();
           }
+        });
+      }
+    }
+    /**
+     * Interact-js pan watch
+     */
 
-          if (currentScale < _this.zoomOutLimit) {
-            _this.resetScale();
+  }, {
+    key: "activatePanWatch",
+    value: function activatePanWatch() {
+      var _this2 = this;
 
-            return;
+      if (this.canPan) {
+        this.interactable.draggable({
+          inertia: true,
+          modifiers: [interact$1.modifiers.restrict({
+            restriction: 'parent',
+            endOnly: true,
+            elementRect: {
+              top: 0,
+              left: 0,
+              bottom: 1,
+              right: 1
+            }
+          })],
+          autoScroll: true,
+          onstart: function onstart() {
+            _this2.dragStartCallback();
+          },
+          onmove: function onmove(e) {
+            _this2.current.x = _this2.last.x + e.dx;
+            _this2.last.x = _this2.current.x;
+            _this2.current.y = _this2.last.y + e.dy;
+            _this2.last.y = _this2.current.y;
+            _this2.current.z = _this2.last.z;
+
+            _this2.update(e);
+          },
+          onend: function onend() {
+            _this2.dragEndCallback();
           }
+        });
+      }
+    }
+    /**
+     * Decides between min and max value.
+     * Then changes element size accordingly.
+     */
 
-          _this.scaleElement.style.webkitTransform = _this.scaleElement.style.transform = "scale(".concat(currentScale, ")");
-        },
-        onend: function onend(event) {
-          _this.scale = _this.scale * event.scale;
+  }, {
+    key: "setMaxMinScale",
+    value: function setMaxMinScale() {
+      if (this.last.z > this.zoomInLimit) {
+        this.setMaxScale();
+      }
 
-          if (_this.scale > _this.zoomThreshold && _this.zoomLockActive == false) {
-            _this.interactable.options.drag.modifiers[0].options.enabled = false;
-            _this.zoomLockActive = true;
-          }
+      if (this.last.z < this.zoomOutLimit) {
+        this.setMinScale();
+      }
+    }
+    /**
+     * Switches zoom mode.
+     */
 
-          if (_this.scale < _this.zoomThreshold && _this.zoomLockActive == true) {
-            _this.interactable.options.drag.modifiers[0].options.enabled = true;
-            _this.zoomLockActive = false;
-          }
+  }, {
+    key: "switchZoomMode",
+    value: function switchZoomMode() {
+      var _this3 = this;
 
-          _this.scaleElement.classList.add('reset');
+      if (this.last.z > this.zoomThreshold && this.zoomLockActive == false) {
+        this.interactable.options.drag.modifiers[0].options.enabled = false;
+        this.zoomLockActive = true;
+        document.addEventListener('click', this.cancelZoom = function (e) {
+          e.preventDefault();
 
-          _this.pinchEndCallback();
-        }
-      } : '');
-      this.interactable.draggable(this.canPan ? {
-        inertia: true,
-        modifiers: [interact$1.modifiers.restrict({
-          restriction: 'parent',
-          endOnly: true,
-          elementRect: {
-            top: 0,
-            left: 0,
-            bottom: 1,
-            right: 1
-          }
-        })],
-        autoScroll: true,
-        onstart: function onstart() {
-          _this.dragStartCallback();
-        },
-        onmove: this.dragMoveListener,
-        onend: function onend() {
-          _this.dragEndCallback();
-        }
-      } : '');
+          _this3.resetTransform();
+        });
+      }
+
+      if (this.last.z < this.zoomThreshold && this.zoomLockActive == true) {
+        this.interactable.options.drag.modifiers[0].options.enabled = true;
+        this.zoomLockActive = false;
+        document.removeEventListener('click', this.cancelZoom);
+      }
+    }
+    /**
+    * @param {Event} e
+    */
+
+  }, {
+    key: "update",
+    value: function update(e) {
+      this.gestureArea.style.webkitTransform = this.gestureArea.style.transform = "translate(".concat(this.current.x, "px, ").concat(this.current.y, "px)");
+      this.scaleElement.style.webkitTransform = this.scaleElement.style.transform = "scale(".concat(this.current.z, ")");
+    }
+    /**
+     * Get two fingers' center
+     * @param {Event} event
+     * @return {Object} return center points of two fingers.
+     */
+
+  }, {
+    key: "getPinchOrigin",
+    value: function getPinchOrigin(event) {
+      return {
+        x: event.x0,
+        y: event.y0
+      };
+    }
+    /**
+    * @param {Object} zoomOrigin
+    * @param {Float} currentScale
+    * @param {Float} newScale
+    * @return {Object}
+    */
+
+  }, {
+    key: "scaleFrom",
+    value: function scaleFrom(zoomOrigin, currentScale, newScale) {
+      var originalSize = this.originalSize;
+      var currentShift = this.getCoordinateShiftDueToScale(originalSize, currentScale);
+      var newShift = this.getCoordinateShiftDueToScale(originalSize, newScale);
+      var zoomDistance = newScale - currentScale;
+      var shift = {
+        x: currentShift.x - newShift.x,
+        y: currentShift.y - newShift.y
+      };
+      var output = {
+        x: zoomOrigin.x * shift.x,
+        y: zoomOrigin.y * shift.y,
+        z: zoomDistance
+      };
+      return output;
+    }
+    /**
+    * @param {Object} size
+    * @param {Float} scale
+    * @return {Object}
+    */
+
+  }, {
+    key: "getCoordinateShiftDueToScale",
+    value: function getCoordinateShiftDueToScale(size, scale) {
+      var newWidth = scale * size.width;
+      var newHeight = scale * size.height;
+      var dx = (newWidth - size.width) / 2;
+      var dy = (newHeight - size.height) / 2;
+      return {
+        x: dx,
+        y: dy
+      };
+    }
+    /**
+    * @param {Element} element
+    * @param {Object} point
+    * @param {Object} originalSize
+    * @param {Float} scale
+    * @return {Object}
+    */
+
+  }, {
+    key: "getRelativePosition",
+    value: function getRelativePosition(element, point, originalSize, scale) {
+      var domCoords = this.getCoords(element);
+      var elementX = point.x - domCoords.x;
+      var elementY = point.y - domCoords.y;
+      var relativeX = elementX / (originalSize.width * scale / 2) - 1;
+      var relativeY = elementY / (originalSize.height * scale / 2) - 1;
+      return {
+        x: relativeX,
+        y: relativeY
+      };
+    }
+    /**
+    * @param {Element} elem
+    * @return {Object}
+    */
+
+  }, {
+    key: "getCoords",
+    value: function getCoords(elem) {
+      // crossbrowser version
+      var box = elem.getBoundingClientRect();
+      var body = document.body;
+      var docEl = document.documentElement;
+      var scrollTop = window.pageYOffset || docEl.scrollTop || body.scrollTop;
+      var scrollLeft = window.pageXOffset || docEl.scrollLeft || body.scrollLeft;
+      var clientTop = docEl.clientTop || body.clientTop || 0;
+      var clientLeft = docEl.clientLeft || body.clientLeft || 0;
+      var top = box.top + scrollTop - clientTop;
+      var left = box.left + scrollLeft - clientLeft;
+      return {
+        x: Math.round(left),
+        y: Math.round(top)
+      };
     }
     /**
      * Add interact-js event listeners.
@@ -9750,7 +9931,8 @@ function () {
   }, {
     key: "enableTouch",
     value: function enableTouch() {
-      this.interactable.gesturable(this.canZoom ? true : '').draggable(this.canPan ? true : '');
+      if (this.canZoom) this.interactable.gesturable(true);
+      if (this.canPan) this.interactable.draggable(true);
     }
     /**
      * Remove interact-js event listeners.
@@ -9769,28 +9951,17 @@ function () {
     key: "setMaxScale",
     value: function setMaxScale() {
       this.scaleElement.style.webkitTransform = this.scaleElement.style.transform = "scale(".concat(this.zoomInLimit, ")");
-      this.scale = this.zoomInLimit;
+      this.last.z = this.zoomInLimit;
     }
     /**
-    * Reset Scale
-    */
-
-  }, {
-    key: "resetScale",
-    value: function resetScale() {
-      this.scaleElement.style.webkitTransform = this.scaleElement.style.transform = 'scale(1)';
-      this.scale = 1;
-    }
-    /**
-     * Reset Position
+     * Set scaleElement's scale to min.
      */
 
   }, {
-    key: "resetPosition",
-    value: function resetPosition() {
-      this.gestureArea.style.webkitTransform = this.gestureArea.style.transform = '';
-      this.gestureArea.setAttribute('data-x', 0);
-      this.gestureArea.setAttribute('data-y', 0);
+    key: "setMinScale",
+    value: function setMinScale() {
+      this.scaleElement.style.webkitTransform = this.scaleElement.style.transform = "scale(".concat(this.zoomOutLimit, ")");
+      this.last.z = this.zoomOutLimit;
     }
     /**
      * Reset Scale and Position
@@ -9803,18 +9974,25 @@ function () {
       this.resetPosition();
     }
     /**
-    * @param {Event} event
+    * Reset Scale
     */
 
   }, {
-    key: "dragMoveListener",
-    value: function dragMoveListener(event) {
-      var target = event.target;
-      var x = (parseFloat(target.getAttribute('data-x')) || 0) + event.dx;
-      var y = (parseFloat(target.getAttribute('data-y')) || 0) + event.dy;
-      target.style.webkitTransform = target.style.transform = "translate(".concat(x, "px, ").concat(y, "px)");
-      target.setAttribute('data-x', x);
-      target.setAttribute('data-y', y);
+    key: "resetScale",
+    value: function resetScale() {
+      this.scaleElement.style.webkitTransform = this.scaleElement.style.transform = 'scale(1)';
+      this.last.z = 1;
+    }
+    /**
+     * Reset Position
+     */
+
+  }, {
+    key: "resetPosition",
+    value: function resetPosition() {
+      this.gestureArea.style.webkitTransform = this.gestureArea.style.transform = '';
+      this.last.x = 0;
+      this.last.y = 0;
     }
   }]);
 
@@ -10075,7 +10253,6 @@ function () {
       var transition = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : this.transition;
       reference.style.transition = "".concat(transition, "s");
       if (this.Touch) content.style.transition = "".concat(transition, "s");
-      console.log(content);
     }
     /**
      * Unset reference and content's default transition
