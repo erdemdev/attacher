@@ -9645,6 +9645,10 @@ function () {
         dragStartCallback = _ref$callbacks$dragSt === void 0 ? function () {} : _ref$callbacks$dragSt,
         _ref$callbacks$dragEn = _ref$callbacks.dragEndCallback,
         dragEndCallback = _ref$callbacks$dragEn === void 0 ? function () {} : _ref$callbacks$dragEn,
+        _ref$style = _ref.style;
+    _ref$style = _ref$style === void 0 ? {} : _ref$style;
+    var _ref$style$resetTrans = _ref$style.resetTransition,
+        resetTransition = _ref$style$resetTrans === void 0 ? .5 : _ref$style$resetTrans,
         _ref$debug = _ref.debug,
         debug = _ref$debug === void 0 ? false : _ref$debug;
 
@@ -9673,6 +9677,7 @@ function () {
       y: this.current.y,
       z: this.current.z
     };
+    this.resetTransition = resetTransition;
     this.debug = debug;
     this.interactable = interact$1(this.gestureArea);
     this.startTouch();
@@ -9689,46 +9694,13 @@ function () {
       this.activatePanWatch();
     }
     /**
-     * Interact-js zoom watch
-     */
-
-  }, {
-    key: "activateZoomWatch",
-    value: function activateZoomWatch() {
-      var _this = this;
-
-      if (this.canZoom) {
-        this.interactable.gesturable({
-          onstart: function onstart(e) {
-            _this.scaleStartListener(e);
-
-            _this.pinchStartCallback();
-          },
-          onmove: function onmove(e) {
-            _this.dragMoveListener(e);
-
-            _this.scaleMoveListener(e);
-          },
-          onend: function onend(e) {
-            _this.scaleEndListener(e);
-
-            _this.setMaxMinScale();
-
-            _this.switchZoomMode();
-
-            _this.pinchEndCallback();
-          }
-        });
-      }
-    }
-    /**
      * Interact-js pan watch
      */
 
   }, {
     key: "activatePanWatch",
     value: function activatePanWatch() {
-      var _this2 = this;
+      var _this = this;
 
       if (this.canPan) {
         this.interactable.draggable({
@@ -9745,17 +9717,63 @@ function () {
           })],
           autoScroll: true,
           onstart: function onstart() {
-            _this2.dragStartCallback();
+            _this.dragStartListener();
+
+            _this.dragStartCallback();
           },
           onmove: function onmove(e) {
-            _this2.dragMoveListener(e);
+            _this.dragMoveListener(e);
           },
           onend: function onend() {
-            _this2.dragEndCallback();
+            _this.dragEndListener();
+
+            _this.dragEndCallback();
           }
         });
       }
     }
+    /**
+     * Interact-js zoom watch
+     */
+
+  }, {
+    key: "activateZoomWatch",
+    value: function activateZoomWatch() {
+      var _this2 = this;
+
+      if (this.canZoom) {
+        this.interactable.gesturable({
+          onstart: function onstart(e) {
+            _this2.scaleStartListener(e);
+
+            _this2.pinchStartCallback();
+          },
+          onmove: function onmove(e) {
+            _this2.dragMoveListener(e);
+
+            _this2.scaleMoveListener(e);
+          },
+          onend: function onend(e) {
+            _this2.scaleEndListener(e);
+
+            _this2.setMaxMinScale();
+
+            _this2.switchZoomMode();
+
+            _this2.pinchEndCallback();
+          }
+        });
+      }
+    }
+    /**
+     * Get saved values.
+     */
+
+  }, {
+    key: "dragStartListener",
+    value: function dragStartListener() {} // this.current.x = this.last.x;
+    // this.current.y = this.last.y;
+
     /**
     * @param {Event} e
     */
@@ -9767,6 +9785,16 @@ function () {
       this.current.x += e.dx;
       this.current.y += e.dy;
       target.style.webkitTransform = target.style.transform = "translate(".concat(this.current.x, "px, ").concat(this.current.y, "px)");
+    }
+    /**
+     * Save current value.
+     */
+
+  }, {
+    key: "dragEndListener",
+    value: function dragEndListener() {
+      this.last.x = this.current.x;
+      this.last.y = this.current.y;
     }
     /**
     * @param {Event} e
@@ -9809,8 +9837,7 @@ function () {
       };
       this.current.x += offsetGestureArea.x;
       this.current.y += offsetGestureArea.y;
-      this.dragMoveListener(e);
-      this.scaleElement.style.webkitTransition = this.scaleElement.style.transition = '0s';
+      this.gestureArea.style.webkitTransform = this.gestureArea.style.transform = "translate(".concat(this.current.x, "px, ").concat(this.current.y, "px)");
       this.scaleElement.style.webkitTransformOrigin = this.scaleElement.style.transformOrigin = '0% 0%';
     }
     /**
@@ -9906,7 +9933,13 @@ function () {
   }, {
     key: "setMaxScale",
     value: function setMaxScale() {
+      var _this4 = this;
+
+      this.setResetTransition();
       this.scaleElement.style.webkitTransform = this.scaleElement.style.transform = "scale(".concat(this.zoomInLimit, ")");
+      setTimeout(function () {
+        _this4.unsetResetTransition();
+      }, this.resetTransition * 1000);
       this.last.z = this.zoomInLimit;
     }
     /**
@@ -9916,8 +9949,32 @@ function () {
   }, {
     key: "setMinScale",
     value: function setMinScale() {
+      var _this5 = this;
+
+      this.setResetTransition();
       this.scaleElement.style.webkitTransform = this.scaleElement.style.transform = "scale(".concat(this.zoomOutLimit, ")");
+      setTimeout(function () {
+        _this5.unsetResetTransition();
+      }, this.resetTransition * 1000);
       this.last.z = this.zoomOutLimit;
+    }
+    /**
+     * Transition styles for scale reset.
+     */
+
+  }, {
+    key: "setResetTransition",
+    value: function setResetTransition() {
+      this.scaleElement.style.webkitTransition = this.scaleElement.style.transition = "".concat(this.resetTransition, "s");
+    }
+    /**
+     * Unsets transition styles after scale reset.
+     */
+
+  }, {
+    key: "unsetResetTransition",
+    value: function unsetResetTransition() {
+      this.scaleElement.style.webkitTransition = this.scaleElement.style.transition = '0s';
     }
     /**
      * Reset Scale and Position
@@ -9936,7 +9993,13 @@ function () {
   }, {
     key: "resetScale",
     value: function resetScale() {
+      var _this6 = this;
+
+      this.setResetTransition();
       this.scaleElement.style.webkitTransform = this.scaleElement.style.transform = 'scale(1)';
+      setTimeout(function () {
+        _this6.unsetResetTransition();
+      }, this.resetTransition * 1000);
       this.last.z = 1;
     }
     /**
@@ -9946,9 +10009,17 @@ function () {
   }, {
     key: "resetPosition",
     value: function resetPosition() {
+      var _this7 = this;
+
+      this.setResetTransition();
       this.gestureArea.style.webkitTransform = this.gestureArea.style.transform = '';
+      setTimeout(function () {
+        _this7.unsetResetTransition();
+      }, this.resetTransition * 1000);
       this.current.x = 0;
       this.current.y = 0;
+      this.last.x = 0;
+      this.last.y = 0;
     }
   }]);
 

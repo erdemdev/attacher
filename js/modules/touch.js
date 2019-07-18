@@ -26,6 +26,9 @@ export default class Touch {
       dragStartCallback = () => {},
       dragEndCallback = () => {},
     } = {},
+    style: {
+      resetTransition = .5,
+    } = {},
     debug = false,
   }) {
     this.gestureArea = gestureArea;
@@ -47,6 +50,7 @@ export default class Touch {
       y: this.current.y,
       z: this.current.z,
     };
+    this.resetTransition = resetTransition;
     this.debug = debug;
     this.interactable = interact(this.gestureArea);
     this.startTouch();
@@ -58,6 +62,41 @@ export default class Touch {
   startTouch() {
     this.activateZoomWatch();
     this.activatePanWatch();
+  }
+
+  /**
+   * Interact-js pan watch
+   */
+  activatePanWatch() {
+    if (this.canPan) {
+      this.interactable.draggable({
+        inertia: true,
+        modifiers: [
+          interact.modifiers.restrict({
+            restriction: 'parent',
+            endOnly: true,
+            elementRect: {
+              top: 0,
+              left: 0,
+              bottom: 1,
+              right: 1,
+            },
+          }),
+        ],
+        autoScroll: true,
+        onstart: () => {
+          this.dragStartListener();
+          this.dragStartCallback();
+        },
+        onmove: (e) => {
+          this.dragMoveListener(e);
+        },
+        onend: () => {
+          this.dragEndListener();
+          this.dragEndCallback();
+        },
+      });
+    }
   }
 
   /**
@@ -85,36 +124,11 @@ export default class Touch {
   }
 
   /**
-   * Interact-js pan watch
+   * Get saved values.
    */
-  activatePanWatch() {
-    if (this.canPan) {
-      this.interactable.draggable({
-        inertia: true,
-        modifiers: [
-          interact.modifiers.restrict({
-            restriction: 'parent',
-            endOnly: true,
-            elementRect: {
-              top: 0,
-              left: 0,
-              bottom: 1,
-              right: 1,
-            },
-          }),
-        ],
-        autoScroll: true,
-        onstart: () => {
-          this.dragStartCallback();
-        },
-        onmove: (e) => {
-          this.dragMoveListener(e);
-        },
-        onend: () => {
-          this.dragEndCallback();
-        },
-      });
-    }
+  dragStartListener() {
+    // this.current.x = this.last.x;
+    // this.current.y = this.last.y;
   }
 
   /**
@@ -129,6 +143,14 @@ export default class Touch {
     target.style.webkitTransform =
     target.style.transform =
     `translate(${this.current.x}px, ${this.current.y}px)`;
+  }
+
+  /**
+   * Save current value.
+   */
+  dragEndListener() {
+    this.last.x = this.current.x;
+    this.last.y = this.current.y;
   }
 
   /**
@@ -173,10 +195,10 @@ export default class Touch {
     this.current.x += offsetGestureArea.x;
     this.current.y += offsetGestureArea.y;
 
-    this.dragMoveListener(e);
+    this.gestureArea.style.webkitTransform =
+    this.gestureArea.style.transform =
+    `translate(${this.current.x}px, ${this.current.y}px)`;
 
-    this.scaleElement.style.webkitTransition =
-    this.scaleElement.style.transition = '0s';
     this.scaleElement.style.webkitTransformOrigin =
     this.scaleElement.style.transformOrigin = '0% 0%';
   }
@@ -264,8 +286,13 @@ export default class Touch {
    * Set scaleElement's scale to max.
    */
   setMaxScale() {
+    this.setResetTransition();
     this.scaleElement.style.webkitTransform =
     this.scaleElement.style.transform = `scale(${this.zoomInLimit})`;
+
+    setTimeout(() => {
+      this.unsetResetTransition();
+    }, this.resetTransition * 1000);
 
     this.last.z = this.zoomInLimit;
   }
@@ -274,10 +301,31 @@ export default class Touch {
    * Set scaleElement's scale to min.
    */
   setMinScale() {
+    this.setResetTransition();
     this.scaleElement.style.webkitTransform =
     this.scaleElement.style.transform = `scale(${this.zoomOutLimit})`;
 
+    setTimeout(() => {
+      this.unsetResetTransition();
+    }, this.resetTransition * 1000);
+
     this.last.z = this.zoomOutLimit;
+  }
+
+  /**
+   * Transition styles for scale reset.
+   */
+  setResetTransition() {
+    this.scaleElement.style.webkitTransition =
+    this.scaleElement.style.transition = `${this.resetTransition}s`;
+  }
+
+  /**
+   * Unsets transition styles after scale reset.
+   */
+  unsetResetTransition() {
+    this.scaleElement.style.webkitTransition =
+    this.scaleElement.style.transition = '0s';
   }
 
   /**
@@ -292,8 +340,14 @@ export default class Touch {
   * Reset Scale
   */
   resetScale() {
+    this.setResetTransition();
+
     this.scaleElement.style.webkitTransform =
     this.scaleElement.style.transform = 'scale(1)';
+
+    setTimeout(() => {
+      this.unsetResetTransition();
+    }, this.resetTransition * 1000);
 
     this.last.z = 1;
   }
@@ -302,10 +356,19 @@ export default class Touch {
    * Reset Position
    */
   resetPosition() {
+    this.setResetTransition();
+
     this.gestureArea.style.webkitTransform =
     this.gestureArea.style.transform = '';
 
+    setTimeout(() => {
+      this.unsetResetTransition();
+    }, this.resetTransition * 1000);
+
     this.current.x = 0;
     this.current.y = 0;
+
+    this.last.x = 0;
+    this.last.y = 0;
   }
 };
