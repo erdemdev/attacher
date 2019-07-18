@@ -118,7 +118,7 @@ export default class Attacher {
           this.unsetTransitionStyle();
         },
         pinchEndCallback: () => {
-          this.setTransitionStyle();
+          // this.setTransitionStyle();
         },
         dragStartCallback: () => {
           this.unsetTransitionStyle();
@@ -127,6 +127,7 @@ export default class Attacher {
           this.setTransitionStyle();
         },
       },
+      debug: this.debug,
     });
   }
 

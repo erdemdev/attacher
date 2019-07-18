@@ -15,7 +15,7 @@ export default class Touch {
       enable: canZoom = true,
       min: zoomOutLimit = 1,
       max: zoomInLimit = 5,
-      threshold: zoomThreshold = 2.5,
+      threshold: zoomThreshold = 2,
     } = {},
     pan: {
       enable: canPan = true,
@@ -26,6 +26,7 @@ export default class Touch {
       dragStartCallback = () => {},
       dragEndCallback = () => {},
     } = {},
+    debug = false,
   }) {
     this.gestureArea = gestureArea;
     this.scaleElement = scaleElement;
@@ -40,27 +41,13 @@ export default class Touch {
     this.pinchEndCallback = pinchEndCallback;
     this.dragStartCallback = dragStartCallback;
     this.dragEndCallback = dragEndCallback;
-    this.originalSize = {
-      width: scaleElement.offsetWidth,
-      height: scaleElement.offsetHeight,
-    };
-    this.current = {
-      x: 0,
-      y: 0,
-      z: 1,
-      width: this.originalSize.width,
-      height: this.originalSize.height,
-    };
+    this.current = {x: 0, y: 0, z: 1};
     this.last = {
       x: this.current.x,
       y: this.current.y,
       z: this.current.z,
     };
-    this.pinchZoomOrigin = undefined;
-    this.pinchStart = {
-      x: undefined,
-      y: undefined,
-    };
+    this.debug = debug;
     this.interactable = interact(this.gestureArea);
     this.startTouch();
   }
@@ -80,18 +67,15 @@ export default class Touch {
     if (this.canZoom) {
       this.interactable.gesturable({
         onstart: (e) => {
+          this.scaleStartListener(e);
           this.pinchStartCallback();
         },
         onmove: (e) => {
-          this.current.x = this.last.x + e.dx;
-          this.last.x = this.current.x;
-          this.current.y = this.last.y + e.dy;
-          this.last.y = this.current.y;
-          this.current.z = this.last.z * e.scale;
-          this.update(e);
+          this.dragMoveListener(e);
+          this.scaleMoveListener(e);
         },
-        onend: () => {
-          this.last.z = this.current.z;
+        onend: (e) => {
+          this.scaleEndListener(e);
           this.setMaxMinScale();
           this.switchZoomMode();
           this.pinchEndCallback();
@@ -124,18 +108,103 @@ export default class Touch {
           this.dragStartCallback();
         },
         onmove: (e) => {
-          this.current.x = this.last.x + e.dx;
-          this.last.x = this.current.x;
-          this.current.y = this.last.y + e.dy;
-          this.last.y = this.current.y;
-          this.current.z = this.last.z;
-          this.update(e);
+          this.dragMoveListener(e);
         },
         onend: () => {
           this.dragEndCallback();
         },
       });
     }
+  }
+
+  /**
+  * @param {Event} e
+  */
+  dragMoveListener(e) {
+    const target = e.target;
+
+    this.current.x += e.dx;
+    this.current.y += e.dy;
+
+    target.style.webkitTransform =
+    target.style.transform =
+    `translate(${this.current.x}px, ${this.current.y}px)`;
+  }
+
+  /**
+  * @param {Event} e
+  */
+  scaleStartListener(e) {
+    const pinchOrigin = this.getPinchOrigin(e);
+
+    this.current.x = this.last.x;
+    this.current.y = this.last.y;
+
+    this.scaleElement.style.webkitTransformOrigin =
+    this.scaleElement.style.transformOrigin =
+    `${pinchOrigin.x}% ${pinchOrigin.y}%`;
+  }
+
+  /**
+  * @param {Event} e
+  */
+  scaleMoveListener(e) {
+    this.current.z = this.last.z * e.scale;
+    this.scaleElement.style.webkitTransform =
+    this.scaleElement.style.transform = `scale(${this.current.z})`;
+  }
+
+  /**
+   * Finish listening
+  * @param {Event} e
+   */
+  scaleEndListener(e) {
+    this.last.x = this.current.x;
+    this.last.y = this.current.y;
+    this.last.z = this.current.z;
+
+    const scaleElemRect = this.scaleElement.getBoundingClientRect();
+    const gestureAreaRect = this.gestureArea.getBoundingClientRect();
+    const offsetGestureArea = {
+      x: scaleElemRect.left - gestureAreaRect.left,
+      y: scaleElemRect.top - gestureAreaRect.top,
+    };
+
+    this.current.x += offsetGestureArea.x;
+    this.current.y += offsetGestureArea.y;
+
+    this.dragMoveListener(e);
+
+    this.scaleElement.style.webkitTransition =
+    this.scaleElement.style.transition = '0s';
+    this.scaleElement.style.webkitTransformOrigin =
+    this.scaleElement.style.transformOrigin = '0% 0%';
+  }
+
+  /**
+   * Get two fingers' center
+   * @param {Event} e
+   * @return {Object} return center points of two fingers.
+   */
+  getPinchOrigin(e) {
+    const scaleElemRect = this.scaleElement.getBoundingClientRect();
+
+    const pinchCoords = {
+      x: (e.clientX + e.clientX0) / 2,
+      y: (e.clientY + e.clientY0) / 2,
+    };
+
+    const clientCoords = {
+      x: pinchCoords.x - scaleElemRect.left,
+      y: pinchCoords.y - scaleElemRect.top,
+    };
+
+    const result = {
+      x: clientCoords.x * 100 / scaleElemRect.width,
+      y: clientCoords.y * 100 / scaleElemRect.height,
+    };
+
+    return result;
   }
 
   /**
@@ -163,118 +232,15 @@ export default class Touch {
         e.preventDefault();
         this.resetTransform();
       });
+      if (this.debug) console.warn('zoom mode switched on.');
     }
 
     if (this.last.z < this.zoomThreshold && this.zoomLockActive == true) {
       this.interactable.options.drag.modifiers[0].options.enabled = true;
       this.zoomLockActive = false;
       document.removeEventListener('click', this.cancelZoom);
+      if (this.debug) console.warn('zoom mode switched off.');
     }
-  }
-
-  /**
-  * @param {Event} e
-  */
-  update(e) {
-    this.gestureArea.style.webkitTransform =
-    this.gestureArea.style.transform =
-    `translate(${this.current.x}px, ${this.current.y}px)`;
-
-    this.scaleElement.style.webkitTransform =
-    this.scaleElement.style.transform = `scale(${this.current.z})`;
-  }
-
-  /**
-   * Get two fingers' center
-   * @param {Event} event
-   * @return {Object} return center points of two fingers.
-   */
-  getPinchOrigin(event) {
-    return {
-      x: event.x0,
-      y: event.y0,
-    };
-  }
-
-  /**
-  * @param {Object} zoomOrigin
-  * @param {Float} currentScale
-  * @param {Float} newScale
-  * @return {Object}
-  */
-  scaleFrom(zoomOrigin, currentScale, newScale) {
-    const originalSize = this.originalSize;
-    const currentShift =
-    this.getCoordinateShiftDueToScale(originalSize, currentScale);
-    const newShift =
-    this.getCoordinateShiftDueToScale(originalSize, newScale);
-    const zoomDistance = newScale - currentScale;
-    const shift = {
-      x: currentShift.x - newShift.x,
-      y: currentShift.y - newShift.y,
-    };
-    const output = {
-      x: zoomOrigin.x * shift.x,
-      y: zoomOrigin.y * shift.y,
-      z: zoomDistance,
-    };
-    return output;
-  }
-
-  /**
-  * @param {Object} size
-  * @param {Float} scale
-  * @return {Object}
-  */
-  getCoordinateShiftDueToScale(size, scale) {
-    const newWidth = scale * size.width;
-    const newHeight = scale * size.height;
-    const dx = (newWidth - size.width) / 2;
-    const dy = (newHeight - size.height) / 2;
-    return {
-      x: dx,
-      y: dy,
-    };
-  }
-
-  /**
-  * @param {Element} element
-  * @param {Object} point
-  * @param {Object} originalSize
-  * @param {Float} scale
-  * @return {Object}
-  */
-  getRelativePosition(element, point, originalSize, scale) {
-    const domCoords = this.getCoords(element);
-    const elementX = point.x - domCoords.x;
-    const elementY = point.y - domCoords.y;
-    const relativeX = elementX / (originalSize.width * scale / 2) - 1;
-    const relativeY = elementY / (originalSize.height * scale / 2) - 1;
-    return {
-      x: relativeX,
-      y: relativeY,
-    };
-  }
-
-  /**
-  * @param {Element} elem
-  * @return {Object}
-  */
-  getCoords(elem) { // crossbrowser version
-    const box = elem.getBoundingClientRect();
-    const body = document.body;
-    const docEl = document.documentElement;
-    const scrollTop = window.pageYOffset || docEl.scrollTop || body.scrollTop;
-    const scrollLeft =
-    window.pageXOffset || docEl.scrollLeft || body.scrollLeft;
-    const clientTop = docEl.clientTop || body.clientTop || 0;
-    const clientLeft = docEl.clientLeft || body.clientLeft || 0;
-    const top = box.top + scrollTop - clientTop;
-    const left = box.left + scrollLeft - clientLeft;
-    return {
-      x: Math.round(left),
-      y: Math.round(top),
-    };
   }
 
   /**
@@ -339,7 +305,7 @@ export default class Touch {
     this.gestureArea.style.webkitTransform =
     this.gestureArea.style.transform = '';
 
-    this.last.x = 0;
-    this.last.y = 0;
+    this.current.x = 0;
+    this.current.y = 0;
   }
 };

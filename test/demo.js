@@ -9630,7 +9630,7 @@ function () {
         _ref$zoom$max = _ref$zoom.max,
         zoomInLimit = _ref$zoom$max === void 0 ? 5 : _ref$zoom$max,
         _ref$zoom$threshold = _ref$zoom.threshold,
-        zoomThreshold = _ref$zoom$threshold === void 0 ? 2.5 : _ref$zoom$threshold,
+        zoomThreshold = _ref$zoom$threshold === void 0 ? 2 : _ref$zoom$threshold,
         _ref$pan = _ref.pan;
     _ref$pan = _ref$pan === void 0 ? {} : _ref$pan;
     var _ref$pan$enable = _ref$pan.enable,
@@ -9644,7 +9644,9 @@ function () {
         _ref$callbacks$dragSt = _ref$callbacks.dragStartCallback,
         dragStartCallback = _ref$callbacks$dragSt === void 0 ? function () {} : _ref$callbacks$dragSt,
         _ref$callbacks$dragEn = _ref$callbacks.dragEndCallback,
-        dragEndCallback = _ref$callbacks$dragEn === void 0 ? function () {} : _ref$callbacks$dragEn;
+        dragEndCallback = _ref$callbacks$dragEn === void 0 ? function () {} : _ref$callbacks$dragEn,
+        _ref$debug = _ref.debug,
+        debug = _ref$debug === void 0 ? false : _ref$debug;
 
     _classCallCheck(this, Touch);
 
@@ -9661,27 +9663,17 @@ function () {
     this.pinchEndCallback = pinchEndCallback;
     this.dragStartCallback = dragStartCallback;
     this.dragEndCallback = dragEndCallback;
-    this.originalSize = {
-      width: scaleElement.offsetWidth,
-      height: scaleElement.offsetHeight
-    };
     this.current = {
       x: 0,
       y: 0,
-      z: 1,
-      width: this.originalSize.width,
-      height: this.originalSize.height
+      z: 1
     };
     this.last = {
       x: this.current.x,
       y: this.current.y,
       z: this.current.z
     };
-    this.pinchZoomOrigin = undefined;
-    this.pinchStart = {
-      x: undefined,
-      y: undefined
-    };
+    this.debug = debug;
     this.interactable = interact$1(this.gestureArea);
     this.startTouch();
   }
@@ -9708,19 +9700,17 @@ function () {
       if (this.canZoom) {
         this.interactable.gesturable({
           onstart: function onstart(e) {
+            _this.scaleStartListener(e);
+
             _this.pinchStartCallback();
           },
           onmove: function onmove(e) {
-            _this.current.x = _this.last.x + e.dx;
-            _this.last.x = _this.current.x;
-            _this.current.y = _this.last.y + e.dy;
-            _this.last.y = _this.current.y;
-            _this.current.z = _this.last.z * e.scale;
+            _this.dragMoveListener(e);
 
-            _this.update(e);
+            _this.scaleMoveListener(e);
           },
-          onend: function onend() {
-            _this.last.z = _this.current.z;
+          onend: function onend(e) {
+            _this.scaleEndListener(e);
 
             _this.setMaxMinScale();
 
@@ -9758,19 +9748,94 @@ function () {
             _this2.dragStartCallback();
           },
           onmove: function onmove(e) {
-            _this2.current.x = _this2.last.x + e.dx;
-            _this2.last.x = _this2.current.x;
-            _this2.current.y = _this2.last.y + e.dy;
-            _this2.last.y = _this2.current.y;
-            _this2.current.z = _this2.last.z;
-
-            _this2.update(e);
+            _this2.dragMoveListener(e);
           },
           onend: function onend() {
             _this2.dragEndCallback();
           }
         });
       }
+    }
+    /**
+    * @param {Event} e
+    */
+
+  }, {
+    key: "dragMoveListener",
+    value: function dragMoveListener(e) {
+      var target = e.target;
+      this.current.x += e.dx;
+      this.current.y += e.dy;
+      target.style.webkitTransform = target.style.transform = "translate(".concat(this.current.x, "px, ").concat(this.current.y, "px)");
+    }
+    /**
+    * @param {Event} e
+    */
+
+  }, {
+    key: "scaleStartListener",
+    value: function scaleStartListener(e) {
+      var pinchOrigin = this.getPinchOrigin(e);
+      this.current.x = this.last.x;
+      this.current.y = this.last.y;
+      this.scaleElement.style.webkitTransformOrigin = this.scaleElement.style.transformOrigin = "".concat(pinchOrigin.x, "% ").concat(pinchOrigin.y, "%");
+    }
+    /**
+    * @param {Event} e
+    */
+
+  }, {
+    key: "scaleMoveListener",
+    value: function scaleMoveListener(e) {
+      this.current.z = this.last.z * e.scale;
+      this.scaleElement.style.webkitTransform = this.scaleElement.style.transform = "scale(".concat(this.current.z, ")");
+    }
+    /**
+     * Finish listening
+    * @param {Event} e
+     */
+
+  }, {
+    key: "scaleEndListener",
+    value: function scaleEndListener(e) {
+      this.last.x = this.current.x;
+      this.last.y = this.current.y;
+      this.last.z = this.current.z;
+      var scaleElemRect = this.scaleElement.getBoundingClientRect();
+      var gestureAreaRect = this.gestureArea.getBoundingClientRect();
+      var offsetGestureArea = {
+        x: scaleElemRect.left - gestureAreaRect.left,
+        y: scaleElemRect.top - gestureAreaRect.top
+      };
+      this.current.x += offsetGestureArea.x;
+      this.current.y += offsetGestureArea.y;
+      this.dragMoveListener(e);
+      this.scaleElement.style.webkitTransition = this.scaleElement.style.transition = '0s';
+      this.scaleElement.style.webkitTransformOrigin = this.scaleElement.style.transformOrigin = '0% 0%';
+    }
+    /**
+     * Get two fingers' center
+     * @param {Event} e
+     * @return {Object} return center points of two fingers.
+     */
+
+  }, {
+    key: "getPinchOrigin",
+    value: function getPinchOrigin(e) {
+      var scaleElemRect = this.scaleElement.getBoundingClientRect();
+      var pinchCoords = {
+        x: (e.clientX + e.clientX0) / 2,
+        y: (e.clientY + e.clientY0) / 2
+      };
+      var clientCoords = {
+        x: pinchCoords.x - scaleElemRect.left,
+        y: pinchCoords.y - scaleElemRect.top
+      };
+      var result = {
+        x: clientCoords.x * 100 / scaleElemRect.width,
+        y: clientCoords.y * 100 / scaleElemRect.height
+      };
+      return result;
     }
     /**
      * Decides between min and max value.
@@ -9805,124 +9870,15 @@ function () {
 
           _this3.resetTransform();
         });
+        if (this.debug) console.warn('zoom mode switched on.');
       }
 
       if (this.last.z < this.zoomThreshold && this.zoomLockActive == true) {
         this.interactable.options.drag.modifiers[0].options.enabled = true;
         this.zoomLockActive = false;
         document.removeEventListener('click', this.cancelZoom);
+        if (this.debug) console.warn('zoom mode switched off.');
       }
-    }
-    /**
-    * @param {Event} e
-    */
-
-  }, {
-    key: "update",
-    value: function update(e) {
-      this.gestureArea.style.webkitTransform = this.gestureArea.style.transform = "translate(".concat(this.current.x, "px, ").concat(this.current.y, "px)");
-      this.scaleElement.style.webkitTransform = this.scaleElement.style.transform = "scale(".concat(this.current.z, ")");
-    }
-    /**
-     * Get two fingers' center
-     * @param {Event} event
-     * @return {Object} return center points of two fingers.
-     */
-
-  }, {
-    key: "getPinchOrigin",
-    value: function getPinchOrigin(event) {
-      return {
-        x: event.x0,
-        y: event.y0
-      };
-    }
-    /**
-    * @param {Object} zoomOrigin
-    * @param {Float} currentScale
-    * @param {Float} newScale
-    * @return {Object}
-    */
-
-  }, {
-    key: "scaleFrom",
-    value: function scaleFrom(zoomOrigin, currentScale, newScale) {
-      var originalSize = this.originalSize;
-      var currentShift = this.getCoordinateShiftDueToScale(originalSize, currentScale);
-      var newShift = this.getCoordinateShiftDueToScale(originalSize, newScale);
-      var zoomDistance = newScale - currentScale;
-      var shift = {
-        x: currentShift.x - newShift.x,
-        y: currentShift.y - newShift.y
-      };
-      var output = {
-        x: zoomOrigin.x * shift.x,
-        y: zoomOrigin.y * shift.y,
-        z: zoomDistance
-      };
-      return output;
-    }
-    /**
-    * @param {Object} size
-    * @param {Float} scale
-    * @return {Object}
-    */
-
-  }, {
-    key: "getCoordinateShiftDueToScale",
-    value: function getCoordinateShiftDueToScale(size, scale) {
-      var newWidth = scale * size.width;
-      var newHeight = scale * size.height;
-      var dx = (newWidth - size.width) / 2;
-      var dy = (newHeight - size.height) / 2;
-      return {
-        x: dx,
-        y: dy
-      };
-    }
-    /**
-    * @param {Element} element
-    * @param {Object} point
-    * @param {Object} originalSize
-    * @param {Float} scale
-    * @return {Object}
-    */
-
-  }, {
-    key: "getRelativePosition",
-    value: function getRelativePosition(element, point, originalSize, scale) {
-      var domCoords = this.getCoords(element);
-      var elementX = point.x - domCoords.x;
-      var elementY = point.y - domCoords.y;
-      var relativeX = elementX / (originalSize.width * scale / 2) - 1;
-      var relativeY = elementY / (originalSize.height * scale / 2) - 1;
-      return {
-        x: relativeX,
-        y: relativeY
-      };
-    }
-    /**
-    * @param {Element} elem
-    * @return {Object}
-    */
-
-  }, {
-    key: "getCoords",
-    value: function getCoords(elem) {
-      // crossbrowser version
-      var box = elem.getBoundingClientRect();
-      var body = document.body;
-      var docEl = document.documentElement;
-      var scrollTop = window.pageYOffset || docEl.scrollTop || body.scrollTop;
-      var scrollLeft = window.pageXOffset || docEl.scrollLeft || body.scrollLeft;
-      var clientTop = docEl.clientTop || body.clientTop || 0;
-      var clientLeft = docEl.clientLeft || body.clientLeft || 0;
-      var top = box.top + scrollTop - clientTop;
-      var left = box.left + scrollLeft - clientLeft;
-      return {
-        x: Math.round(left),
-        y: Math.round(top)
-      };
     }
     /**
      * Add interact-js event listeners.
@@ -9991,8 +9947,8 @@ function () {
     key: "resetPosition",
     value: function resetPosition() {
       this.gestureArea.style.webkitTransform = this.gestureArea.style.transform = '';
-      this.last.x = 0;
-      this.last.y = 0;
+      this.current.x = 0;
+      this.current.y = 0;
     }
   }]);
 
@@ -10134,8 +10090,7 @@ function () {
           pinchStartCallback: function pinchStartCallback() {
             _this.unsetTransitionStyle();
           },
-          pinchEndCallback: function pinchEndCallback() {
-            _this.setTransitionStyle();
+          pinchEndCallback: function pinchEndCallback() {// this.setTransitionStyle();
           },
           dragStartCallback: function dragStartCallback() {
             _this.unsetTransitionStyle();
@@ -10143,7 +10098,8 @@ function () {
           dragEndCallback: function dragEndCallback() {
             _this.setTransitionStyle();
           }
-        }
+        },
+        debug: this.debug
       });
     }
     /**
