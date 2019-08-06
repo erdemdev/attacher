@@ -1,0 +1,12 @@
+{
+  "input": "attacher.js",
+  "output": "../dist/attacher.js",
+  "cssOutput": false,
+  "mainNodeModulesPath": "../node_modules",
+  "useBrowserSync": false,
+  "scripts": {
+    "start": "rollup -c -w",
+    "build": "rollup -c --environment production",
+    "link": "npm link @babel/core @babel/preset-env autoprefixer node-sass rollup-plugin-commonjs rollup-plugin-babel rollup-plugin-node-resolve rollup-plugin-postcss rollup-plugin-terser"
+  }
+}

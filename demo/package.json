@@ -1,0 +1,14 @@
+{
+  "input": "demo.js",
+  "output": "./public/app.js",
+  "cssOutput": "./public//style.css",
+  "mainNodeModulesPath": "../node_modules",
+  "useBrowserSync": true,
+  "browserSyncServer": "Use server",
+  "server": "./public/",
+  "scripts": {
+    "start": "rollup -c -w",
+    "build": "rollup -c --environment production",
+    "link": "npm link @babel/core @babel/preset-env autoprefixer node-sass rollup-plugin-commonjs rollup-plugin-babel rollup-plugin-node-resolve rollup-plugin-postcss rollup-plugin-terser browser-sync"
+  }
+}

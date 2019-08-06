@@ -1,12 +1,12 @@
 /**
  * Import Styles
  */
-import '../sass/demo.scss';
+import './demo.scss';
 
 /**
  * Import Main.js module
  */
-import Attacher from './main';
+import Attacher from '../src/attacher';
 
 /**
  * Get reference and target elements.
@@ -22,7 +22,6 @@ const attacher = new Attacher(reference, {
   touchSurface: referenceSurface,
   target: targets[0],
   posPriority: 'top',
-  transition: 1,
   debug: true,
 });
 

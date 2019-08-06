@@ -1,12 +1,7 @@
 /**
  * Attacher Styles
  */
-import '../sass/main.scss';
-
-/**
- * Import Sub Classes
- */
-import Touch from './modules/touch';
+import './attacher.scss';
 
 /**
  * @class Attacher
@@ -16,15 +11,13 @@ export default class Attacher {
    * Pass arguments to class properties.
    * @constructor
    * @arg {Element} reference element.
-   * @arg {Object} options of attacher.
-   *  @arg {Element} target element.
-   *  @arg {Boolean} debug mode.
-   *  @arg {String} posPriority ("top", "bottom", "center") of target.
-   *  @arg {Float} transition seconds.
-   *  @arg {Object} padding of reference to target.
-   *  @arg {Object} bPadding padding of boundary.
-   *  @arg {Float} watchRefreshSeconds of attacher.
-   *  @arg {Object} touch defines touch abilities.
+   * @arg {Element} target element.
+   * @arg {Boolean} debug mode.
+   * @arg {String} posPriority ("top", "bottom", "center") of target.
+   * @arg {Float} transition seconds.
+   * @arg {Object} padding of reference to target.
+   * @arg {Object} bPadding padding of boundary.
+   * @arg {Float} watchRefreshSeconds of attacher.
    */
   constructor(reference, {
     target = null,
@@ -32,7 +25,7 @@ export default class Attacher {
     styles: {
       transition = 1,
     } = {},
-    posPriority = 'top',
+    posPriority = 'bottom',
     padding: {
       x: paddingX = 10,
       y: paddingY = 20,
@@ -42,18 +35,9 @@ export default class Attacher {
       y: bPaddingY = 50,
     } = {},
     watchRefreshSeconds = .5,
-    touch: {
-      zoom: {
-        enable: canZoom = true,
-        min: zoomOutLimit = 1,
-        max: zoomInLimit = 7,
-      } = {},
-      pan: {
-        enable: canPan = true,
-      } = {},
-    } = {},
   }) {
     if (debug) console.warn('attacher component created.', this);
+
     /**
      * Set up global properties.
      */
@@ -69,66 +53,11 @@ export default class Attacher {
     this.forcedPosPriority = false;
     this.watchRefreshSeconds = watchRefreshSeconds;
     this.windowWidth = window.innerWidth;
-    this.canZoom = canZoom;
-    this.canPan = canPan;
-    this.zoomOutLimit = zoomOutLimit;
-    this.zoomInLimit = zoomInLimit;
-    this.setTouch();
+
     /**
      * Bind reference to target if target exists.
      */
     if (target) this.bind(target);
-  }
-
-  /**
-   * @arg {Object} touch options.
-   */
-  setTouch() {
-    if (this.canZoom || this.canPan) {
-      this.createTouchSurface();
-      this.createTouchInstance();
-    }
-  }
-
-  /**
-   * Convert reference object to touch surface.
-   */
-  createTouchSurface() {
-    this.content = this.reference;
-    this.reference = document.createElement('div');
-    document.body.appendChild(this.reference);
-    this.reference.appendChild(this.content);
-  }
-
-  /**
-   * Create Touch instance
-   */
-  createTouchInstance() {
-    this.Touch = new Touch(this.reference, this.content, {
-      zoom: {
-        enable: this.canZoom,
-        min: this.zoomOutLimit,
-        man: this.zoomInLimit,
-      } = {},
-      pan: {
-        enable: this.canPan,
-      },
-      callbacks: {
-        pinchStartCallback: () => {
-          this.unsetTransitionStyle();
-        },
-        pinchEndCallback: () => {
-          // this.setTransitionStyle();
-        },
-        dragStartCallback: () => {
-          this.unsetTransitionStyle();
-        },
-        dragEndCallback: () => {
-          this.setTransitionStyle();
-        },
-      },
-      debug: this.debug,
-    });
   }
 
   /**
@@ -138,10 +67,9 @@ export default class Attacher {
   bind(target) {
     this.target = target;
     this.setStyles();
-    if (this.Touch) this.Touch.resetTransform();
     setTimeout(() => {
       this.activate();
-    }, 10);
+    }, 100);
     if (this.debug) console.log(`Attacher bind method fired.`);
   }
 
@@ -165,7 +93,6 @@ export default class Attacher {
       this.setTransitionStyle();
     }, 100);
     this.startWatch();
-    if (this.Touch) this.Touch.enableTouch();
   }
 
   /**
@@ -175,7 +102,6 @@ export default class Attacher {
     this.reference.style.transition = '';
     this.reference.style.left = '-100%';
     this.stopWatch();
-    if (this.Touch) this.Touch.disableTouch();
   }
 
   /**
@@ -208,16 +134,13 @@ export default class Attacher {
   /**
    * Set reference and content's default transition
    * @arg {Element} reference
-   * @arg {Element} content
    * @arg {Float} transition
    */
   setTransitionStyle(
       reference = this.reference,
-      content = this.content,
       transition = this.transition,
   ) {
     reference.style.transition = `${transition}s`;
-    if (this.Touch) content.style.transition = `${transition}s`;
   }
 
   /**
@@ -230,7 +153,6 @@ export default class Attacher {
       content = this.content,
   ) {
     reference.style.transition = '';
-    if (this.Touch) content.style.transition = '';
   }
 
   /**
@@ -244,7 +166,142 @@ export default class Attacher {
       }
       return;
     }
+
     this.setPosition(this.getPosition());
+  }
+
+  /**
+   * Decide new position according to window size and priority.
+   * @return {Object} new position of target element.
+   */
+  getPosition() {
+    const coords = this.target.getBoundingClientRect();
+    const positionX = this.offsetPositionX(coords.left + window.scrollX);
+    const positionY = this.offsetPositionY(coords.top + window.scrollY);
+    this.targetPosY = positionY;
+
+    return {
+      left: positionX,
+      top: positionY,
+    };
+  }
+
+  /**
+   * Set position of reference element.
+   * @arg {Object} position of reference element.
+   */
+  setPosition(position) {
+    this.reference.style.left = `${position.left}px`;
+    this.reference.style.top = `${position.top}px`;
+    this.reference.style.transform = '';
+  }
+
+  /**
+   * check if X axis is out of border.
+   * @arg {FLoat} position of target in x-axis.
+   * @return {Float} X distance between reference and target.
+   */
+  offsetPositionX(position) {
+    const newPosition = position - (this.reference.offsetWidth / 2) +
+    (this.target.offsetWidth / 2);
+
+    /**
+     * Check if reference is out-of-bounds.
+     */
+    const bodyWidth = window.innerWidth;
+
+    if (newPosition + this.reference.offsetWidth +
+      this.paddingX > bodyWidth) {
+      if (this.debug) console.log('Reference bleeds from right.');
+      return bodyWidth - this.reference.offsetWidth - this.paddingX;
+    }
+
+    if (newPosition - this.paddingX < 0) {
+      if (this.debug) console.log('Reference bleeds from left.');
+      return 0 + this.paddingX;
+    }
+
+    return newPosition;
+  }
+
+  /**
+   * Calculate Y distance first.
+   * Check if Y distance is out of boundary.
+   * If out of boundary. Recalculate Y distance.
+   * @arg {Float} position of target in y-axis.
+   * @return {Float} Y distance between reference and target.
+   */
+  offsetPositionY(position) {
+    let newPosition = this.repositionPivotY(position);
+
+    switch (this.checkBleedingY(newPosition)) {
+      case 'top':
+        newPosition = this.repositionPivotY(position, 'bottom');
+        break;
+
+      case 'bottom':
+        newPosition = this.repositionPivotY(position, 'top');
+        break;
+    }
+
+    return newPosition;
+  }
+
+  /**
+  * Calculate position priority of reference element.
+  * @arg {Float} position of target in y-axis.
+  * @arg {String} posPriority position priority.
+  * @return {Float} Y distance between reference and target.
+   */
+  repositionPivotY(position, posPriority = this.posPriority) {
+    let newPosition = 0;
+
+    switch (posPriority) {
+      case 'center':
+        newPosition = position;
+        break;
+
+      case 'top':
+        newPosition = position - this.reference.offsetHeight - this.paddingY;
+        break;
+
+      case 'bottom':
+        newPosition = position + this.target.offsetHeight + this.paddingY;
+        break;
+    }
+
+    return newPosition;
+  }
+
+  /**
+   * Check if target position is out-of-bounds in y-axis.
+   * @arg {Float} position of target in y-axis.
+   * @return {Boolean | String} the bleeding position of reference.
+   * false for no bleeding.
+   */
+  checkBleedingY(position) {
+    const topBoundary = window.scrollY;
+    const refTopBoundary = position - this.bPaddingY;
+
+    if (topBoundary >= refTopBoundary ) {
+      if (this.debug) console.log('Reference bleeds from top.');
+      this.forcedPosPriority = 'bottom';
+      return 'top';
+    }
+
+    const bottomBoundary = topBoundary + window.innerHeight;
+    const refBottomBoundary = position +
+    this.reference.offsetHeight + this.bPaddingY;
+
+    if (refBottomBoundary > bottomBoundary) {
+      if (this.debug) console.log('Reference bleeds from bottom.');
+      this.forcedPosPriority = 'top';
+      return 'bottom';
+    }
+
+    this.forcedPosPriority = false;
+
+    return false;
   }
 
   /**
@@ -255,6 +312,7 @@ export default class Attacher {
      * Check if event listeners assigned.
      */
     if (this.eventListenersCreated) return;
+
     /**
      * Refresh reference element when the user scrolls the page.
      */
@@ -262,33 +320,40 @@ export default class Attacher {
       if (!this.sleepMode) this.autoRefresh();
       this.switchToSleepMode();
     }, {passive: true});
+
     /**
      * Refresh when window object resized by the user.
      */
     window.addEventListener('resize', this.resizeWatcher = () => {
       if (this.windowWidth == window.innerWidth) return;
+
       if (this.debug) console.warn('Document resized.');
+
       this.reference.style.display = 'none';
       this.resetStyles();
+
       setTimeout(() => {
         this.reference.style.display = '';
         this.setStyles();
         this.refresh();
       }, 100);
+
       setTimeout(() => {
         this.setTransitionStyle();
       }, 200);
+
       this.windowWidth = window.innerWidth;
+
       if (this.debug) console.log('new screen width set to default');
     });
+
     document.addEventListener('blurAttacher', this.blurAttacher = () => {
       this.reference.style.zIndex = 1;
       if (this.debug) console.log('blurAttacher event fired.');
     });
-    /**
-     * Register touch events
-     */
+
     this.eventListenersCreated = true;
+
     if (this.debug) console.warn('attacher started watching.');
   }
 
@@ -299,7 +364,9 @@ export default class Attacher {
     document.removeEventListener('scroll', this.scrollWatcher);
     window.removeEventListener('resize', this.resizeWatcher);
     document.removeEventListener('blurAttacher', this.blurAttacher);
+
     this.eventListenersCreated = false;
+
     if (this.debug) console.warn('attacher stopped watching.');
   }
 
@@ -308,15 +375,19 @@ export default class Attacher {
    */
   autoRefresh() {
     if (this.checkBleedingTimer) return;
+
     if (this.forcedPosPriority == this.checkBleedingY(this.targetPosY)) {
       return;
     };
+
     if (this.debug) console.log('Refresh requested.');
+
     setTimeout(() => {
       this.checkBleedingTimer = false;
       this.refresh();
       if (this.debug) console.log('Refreshed.');
     }, this.watchRefreshSeconds * 1000);
+
     this.checkBleedingTimer = true;
   }
 
@@ -334,131 +405,11 @@ export default class Attacher {
       this.sleepMode = true;
       return;
     }
+
     if (this.debug && this.sleepMode == true) {
       console.warn('attacher switched off sleep mode.');
     }
+
     this.sleepMode = false;
-  }
-
-  /**
-   * Decide new position according to window size and priority.
-   * @return {Object} new position of target element.
-   */
-  getPosition() {
-    const coords = this.target.getBoundingClientRect();
-    const positionX =
-    this.offsetPositionX(coords.left + window.scrollX);
-    const positionY =
-    this.offsetPositionY(coords.top + window.scrollY);
-    this.targetPosY = positionY;
-    if (this.Touch) this.Touch.resetTransform();
-    return {
-      left: positionX,
-      top: positionY,
-    };
-  }
-
-  /**
-   * Set position of reference element.
-   * @arg {Object} position of reference element.
-   */
-  setPosition(position) {
-    this.reference.style.left = `${position.left}px`;
-    this.reference.style.top = `${position.top}px`;
-    this.reference.style.transform = '';
-    if (this.Touch) this.content.style.transform = '';
-  }
-
-  /**
-   * check if X axis is out of border.
-   * @arg {FLoat} position of target in x-axis.
-   * @return {Float} X distance between reference and target.
-   */
-  offsetPositionX(position) {
-    const newPosition = position - (this.reference.offsetWidth / 2) +
-    (this.target.offsetWidth / 2);
-    /**
-     * Check if reference is out-of-bounds.
-     */
-    const bodyWidth = window.innerWidth;
-    if (newPosition + this.reference.offsetWidth +
-      this.paddingX > bodyWidth) {
-      if (this.debug) console.log('Reference bleeds from right.');
-      return bodyWidth - this.reference.offsetWidth - this.paddingX;
-    }
-    if (newPosition - this.paddingX < 0) {
-      if (this.debug) console.log('Reference bleeds from left.');
-      return 0 + this.paddingX;
-    }
-    return newPosition;
-  }
-
-  /**
-   * Calculate Y distance first.
-   * Check if Y distance is out of boundary.
-   * If out of boundary. Recalculate Y distance.
-   * @arg {Float} position of target in y-axis.
-   * @return {Float} Y distance between reference and target.
-   */
-  offsetPositionY(position) {
-    let newPosition = this.repositionPivotY(position);
-    switch (this.checkBleedingY(newPosition)) {
-      case 'top':
-        newPosition = this.repositionPivotY(position, 'bottom');
-        break;
-      case 'bottom':
-        newPosition = this.repositionPivotY(position, 'top');
-        break;
-    }
-    return newPosition;
-  }
-
-  /**
-  * Calculate position priority of reference element.
-  * @arg {Float} position of target in y-axis.
-  * @arg {String} posPriority position priority.
-  * @return {Float} Y distance between reference and target.
-   */
-  repositionPivotY(position, posPriority = this.posPriority) {
-    let newPosition = 0;
-    switch (posPriority) {
-      case 'center':
-        newPosition = position;
-        break;
-      case 'top':
-        newPosition = position - this.reference.offsetHeight -
-        this.paddingY;
-        break;
-      case 'bottom':
-        newPosition = position + this.target.offsetHeight + this.paddingY;
-        break;
-    }
-    return newPosition;
-  }
-
-  /**
-   * Check if target position is out-of-bounds in y-axis.
-   * @arg {Float} position of target in y-axis.
-   * @return {Boolean | String} the bleeding position of reference.
-   * false for no bleeding.
-   */
-  checkBleedingY(position) {
-    const topBoundary = window.scrollY;
-    const refTopBoundary = position - this.bPaddingY;
-    if (topBoundary >= refTopBoundary ) {
-      if (this.debug) console.log('Reference bleeds from top.');
-      this.forcedPosPriority = 'bottom';
-      return 'top';
-    }
-    const bottomBoundary = topBoundary + window.innerHeight;
-    const refBottomBoundary = position + this.reference.offsetHeight +
-    this.bPaddingY;
-    if (refBottomBoundary > bottomBoundary) {
-      if (this.debug) console.log('Reference bleeds from bottom.');
-      this.forcedPosPriority = 'top';
-      return 'bottom';
-    }
-    this.forcedPosPriority = false;
-    return false;
   }
 };

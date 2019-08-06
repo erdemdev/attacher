@@ -37,7 +37,6 @@ html, body {
     margin: 12rem auto 5rem;
     border-radius: 50%;
     border: 5px solid white;
-    display: -webkit-box;
     display: flex;
     box-shadow: 0px 10px 25px -15px black; }
     .target__board h2 {
@@ -70,15 +69,15 @@ html, body {
   min-height: 125px;
   border-radius: 5px;
   border: 5px solid #4e4e4e;
-  display: -webkit-box;
   display: flex;
-  box-shadow: 0px 10px 25px -15px black; }
+  box-shadow: 0px 10px 25px -15px black;
+  position: absolute;
+  left: 100%; }
   .reference--static {
     width: 200px;
     height: 100px; }
   .reference--bleed {
-    -webkit-transform: translateX(200px);
-            transform: translateX(200px); }
+    transform: translateX(200px); }
   .reference h2 {
     color: #4e4e4e;
     align-self: center;
@@ -86,4 +85,4 @@ html, body {
     width: 100%; }
 
 
-/*# sourceMappingURL=demo.css.map */
+/*# sourceMappingURL=style.css.map */
