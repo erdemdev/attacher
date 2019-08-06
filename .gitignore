@@ -1,7 +1,4 @@
+*.cache
 node_modules
 package-lock.json
 .vscode
-.firebaserc
-firebase.json
-.firebase
-*.cache

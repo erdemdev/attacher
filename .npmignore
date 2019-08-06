@@ -1,1 +1,7 @@
+*.cache
+node_modules
+package-lock.json
+.vscode
+.eslintignore
+.eslintrc.js
 demo
