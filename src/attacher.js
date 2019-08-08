@@ -13,17 +13,20 @@ export default class Attacher {
    * @arg {Element} reference element.
    * @arg {Element} target element.
    * @arg {Boolean} debug mode.
-   * @arg {String} posPriority ("top", "bottom", "center") of target.
    * @arg {Float} transition seconds.
+   * @arg {Float} focusIndex
+   * @arg {String} posPriority ("top", "bottom", "center") of target.
    * @arg {Object} padding of reference to target.
    * @arg {Object} bPadding padding of boundary.
    * @arg {Float} watchRefreshSeconds of attacher.
    */
   constructor(reference, {
     target = null,
+    autoActivate = false,
     debug = false,
     styles: {
       transition = 1,
+      focusIndex = 10,
     } = {},
     posPriority = 'bottom',
     padding: {
@@ -44,6 +47,8 @@ export default class Attacher {
     this.reference = reference;
     this.target = target;
     this.debug = debug;
+    this.autoActivate = autoActivate;
+    this.focusIndex = focusIndex;
     this.posPriority = posPriority;
     this.transition = transition;
     this.paddingX = paddingX;
@@ -58,6 +63,8 @@ export default class Attacher {
      * Bind reference to target if target exists.
      */
     if (target) this.bind(target);
+
+    this.watchBlurEvents();
   }
 
   /**
@@ -67,9 +74,13 @@ export default class Attacher {
   bind(target) {
     this.target = target;
     this.setStyles();
-    setTimeout(() => {
-      this.activate();
-    }, 100);
+
+    if (this.autoActivate) {
+      setTimeout(() => {
+        this.activate();
+      }, 100);
+    }
+
     if (this.debug) console.log(`Attacher bind method fired.`);
   }
 
@@ -100,7 +111,7 @@ export default class Attacher {
    */
   deactivate() {
     this.reference.style.transition = '';
-    this.reference.style.left = '-100%';
+    this.reference.style.left = '';
     this.stopWatch();
   }
 
@@ -109,7 +120,7 @@ export default class Attacher {
    */
   switchFocus() {
     document.dispatchEvent(new CustomEvent('blurAttacher'));
-    this.reference.style.zIndex = 1000;
+    this.reference.style.zIndex = this.focusIndex;
   }
 
   /**
@@ -305,6 +316,16 @@ export default class Attacher {
   }
 
   /**
+   * Watch Global Events
+   */
+  watchBlurEvents() {
+    document.addEventListener('blurAttacher', this.blurAttacher = () => {
+      this.reference.style.zIndex = 1;
+      if (this.debug) console.log('blurAttacher event fired.');
+    });
+  }
+
+  /**
    * Listen document scroll change.
    */
   startWatch() {
@@ -344,12 +365,7 @@ export default class Attacher {
 
       this.windowWidth = window.innerWidth;
 
-      if (this.debug) console.log('new screen width set to default');
-    });
-
-    document.addEventListener('blurAttacher', this.blurAttacher = () => {
-      this.reference.style.zIndex = 1;
-      if (this.debug) console.log('blurAttacher event fired.');
+      if (this.debug) console.warn('new screen width set to default');
     });
 
     this.eventListenersCreated = true;
@@ -363,7 +379,6 @@ export default class Attacher {
   stopWatch() {
     document.removeEventListener('scroll', this.scrollWatcher);
     window.removeEventListener('resize', this.resizeWatcher);
-    document.removeEventListener('blurAttacher', this.blurAttacher);
 
     this.eventListenersCreated = false;
 
@@ -385,6 +400,7 @@ export default class Attacher {
     setTimeout(() => {
       this.checkBleedingTimer = false;
       this.refresh();
+
       if (this.debug) console.log('Refreshed.');
     }, this.watchRefreshSeconds * 1000);
 
@@ -402,7 +418,9 @@ export default class Attacher {
       if (this.debug && this.sleepMode == false) {
         console.warn('attacher switched to sleep mode.');
       }
+
       this.sleepMode = true;
+
       return;
     }
 

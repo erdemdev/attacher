@@ -23,6 +23,10 @@ const attacher = new Attacher(reference, {
   target: targets[0],
   posPriority: 'top',
   debug: true,
+  autoActivate: true,
+  styles: {
+    focusIndex: 10,
+  }
 });
 
 /**

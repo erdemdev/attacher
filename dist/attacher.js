@@ -1,1 +1,542 @@
-function e(e,t){for(var i=0;i<t.length;i++){var s=t[i];s.enumerable=s.enumerable||!1,s.configurable=!0,"value"in s&&(s.writable=!0),Object.defineProperty(e,s.key,s)}}!function(e,t){void 0===t&&(t={});var i=t.insertAt;if(e&&"undefined"!=typeof document){var s=document.head||document.getElementsByTagName("head")[0],n=document.createElement("style");n.type="text/css","top"===i&&s.firstChild?s.insertBefore(n,s.firstChild):s.appendChild(n),n.styleSheet?n.styleSheet.cssText=e:n.appendChild(document.createTextNode(e))}}("");var t=function(){function t(e,i){var s=i.target,n=void 0===s?null:s,o=i.debug,r=void 0!==o&&o,h=i.styles,c=(h=void 0===h?{}:h).transition,d=void 0===c?1:c,a=i.posPriority,l=void 0===a?"bottom":a,f=i.padding,u=(f=void 0===f?{}:f).x,v=void 0===u?10:u,g=f.y,y=void 0===g?20:g,p=i.bPadding,w=(p=void 0===p?{}:p).x,b=void 0===w?25:w,m=p.y,P=void 0===m?50:m,k=i.watchRefreshSeconds,T=void 0===k?.5:k;!function(e,t){if(!(e instanceof t))throw new TypeError("Cannot call a class as a function")}(this,t),r&&console.warn("attacher component created.",this),this.reference=e,this.target=n,this.debug=r,this.posPriority=l,this.transition=d,this.paddingX=v,this.paddingY=y,this.bPaddingX=b,this.bPaddingY=P,this.forcedPosPriority=!1,this.watchRefreshSeconds=T,this.windowWidth=window.innerWidth,n&&this.bind(n)}var i,s,n;return i=t,(s=[{key:"bind",value:function(e){var t=this;this.target=e,this.setStyles(),setTimeout(function(){t.activate()},100),this.debug&&console.log("Attacher bind method fired.")}},{key:"unbind",value:function(){this.debug&&console.log("Attacher unbind method fired."),this.resetStyles(),this.target=void 0,this.deactivate()}},{key:"activate",value:function(){var e=this;this.switchFocus(),this.refresh(),setTimeout(function(){e.setTransitionStyle()},100),this.startWatch()}},{key:"deactivate",value:function(){this.reference.style.transition="",this.reference.style.left="-100%",this.stopWatch()}},{key:"switchFocus",value:function(){document.dispatchEvent(new CustomEvent("blurAttacher")),this.reference.style.zIndex=1e3}},{key:"setStyles",value:function(){this.reference.style.position="absolute",this.reference.style.zIndex=1}},{key:"resetStyles",value:function(){this.reference.style.position="",this.reference.style.zIndex="",this.reference.style.transition="",this.reference.style.left="",this.reference.style.top=""}},{key:"setTransitionStyle",value:function(){var e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:this.reference,t=arguments.length>1&&void 0!==arguments[1]?arguments[1]:this.transition;e.style.transition="".concat(t,"s")}},{key:"unsetTransitionStyle",value:function(){var e=arguments.length>0&&void 0!==arguments[0]?arguments[0]:this.reference;arguments.length>1&&void 0!==arguments[1]?arguments[1]:this.content;e.style.transition=""}},{key:"refresh",value:function(){null!=this.target?this.setPosition(this.getPosition()):this.debug&&console.warn("Attacher can't refresh. Target is undefined.")}},{key:"getPosition",value:function(){var e=this.target.getBoundingClientRect(),t=this.offsetPositionX(e.left+window.scrollX),i=this.offsetPositionY(e.top+window.scrollY);return this.targetPosY=i,{left:t,top:i}}},{key:"setPosition",value:function(e){this.reference.style.left="".concat(e.left,"px"),this.reference.style.top="".concat(e.top,"px"),this.reference.style.transform=""}},{key:"offsetPositionX",value:function(e){var t=e-this.reference.offsetWidth/2+this.target.offsetWidth/2,i=window.innerWidth;return t+this.reference.offsetWidth+this.paddingX>i?(this.debug&&console.log("Reference bleeds from right."),i-this.reference.offsetWidth-this.paddingX):t-this.paddingX<0?(this.debug&&console.log("Reference bleeds from left."),0+this.paddingX):t}},{key:"offsetPositionY",value:function(e){var t=this.repositionPivotY(e);switch(this.checkBleedingY(t)){case"top":t=this.repositionPivotY(e,"bottom");break;case"bottom":t=this.repositionPivotY(e,"top")}return t}},{key:"repositionPivotY",value:function(e){var t=arguments.length>1&&void 0!==arguments[1]?arguments[1]:this.posPriority,i=0;switch(t){case"center":i=e;break;case"top":i=e-this.reference.offsetHeight-this.paddingY;break;case"bottom":i=e+this.target.offsetHeight+this.paddingY}return i}},{key:"checkBleedingY",value:function(e){var t=window.scrollY;if(t>=e-this.bPaddingY)return this.debug&&console.log("Reference bleeds from top."),this.forcedPosPriority="bottom","top";var i=t+window.innerHeight;return e+this.reference.offsetHeight+this.bPaddingY>i?(this.debug&&console.log("Reference bleeds from bottom."),this.forcedPosPriority="top","bottom"):(this.forcedPosPriority=!1,!1)}},{key:"startWatch",value:function(){var e=this;this.eventListenersCreated||(document.addEventListener("scroll",this.scrollWatcher=function(){e.sleepMode||e.autoRefresh(),e.switchToSleepMode()},{passive:!0}),window.addEventListener("resize",this.resizeWatcher=function(){e.windowWidth!=window.innerWidth&&(e.debug&&console.warn("Document resized."),e.reference.style.display="none",e.resetStyles(),setTimeout(function(){e.reference.style.display="",e.setStyles(),e.refresh()},100),setTimeout(function(){e.setTransitionStyle()},200),e.windowWidth=window.innerWidth,e.debug&&console.log("new screen width set to default"))}),document.addEventListener("blurAttacher",this.blurAttacher=function(){e.reference.style.zIndex=1,e.debug&&console.log("blurAttacher event fired.")}),this.eventListenersCreated=!0,this.debug&&console.warn("attacher started watching."))}},{key:"stopWatch",value:function(){document.removeEventListener("scroll",this.scrollWatcher),window.removeEventListener("resize",this.resizeWatcher),document.removeEventListener("blurAttacher",this.blurAttacher),this.eventListenersCreated=!1,this.debug&&console.warn("attacher stopped watching.")}},{key:"autoRefresh",value:function(){var e=this;this.checkBleedingTimer||this.forcedPosPriority!=this.checkBleedingY(this.targetPosY)&&(this.debug&&console.log("Refresh requested."),setTimeout(function(){e.checkBleedingTimer=!1,e.refresh(),e.debug&&console.log("Refreshed.")},1e3*this.watchRefreshSeconds),this.checkBleedingTimer=!0)}},{key:"switchToSleepMode",value:function(){if(window.scrollY>this.reference.offsetTop+this.reference.offsetHeight||this.reference.offsetTop>window.scrollY+window.innerHeight)return this.debug&&0==this.sleepMode&&console.warn("attacher switched to sleep mode."),void(this.sleepMode=!0);this.debug&&1==this.sleepMode&&console.warn("attacher switched off sleep mode."),this.sleepMode=!1}}])&&e(i.prototype,s),n&&e(i,n),t}();export default t;
+function _classCallCheck(instance, Constructor) {
+  if (!(instance instanceof Constructor)) {
+    throw new TypeError("Cannot call a class as a function");
+  }
+}
+
+function _defineProperties(target, props) {
+  for (var i = 0; i < props.length; i++) {
+    var descriptor = props[i];
+    descriptor.enumerable = descriptor.enumerable || false;
+    descriptor.configurable = true;
+    if ("value" in descriptor) descriptor.writable = true;
+    Object.defineProperty(target, descriptor.key, descriptor);
+  }
+}
+
+function _createClass(Constructor, protoProps, staticProps) {
+  if (protoProps) _defineProperties(Constructor.prototype, protoProps);
+  if (staticProps) _defineProperties(Constructor, staticProps);
+  return Constructor;
+}
+
+function styleInject(css, ref) {
+  if (ref === void 0) ref = {};
+  var insertAt = ref.insertAt;
+
+  if (!css || typeof document === 'undefined') {
+    return;
+  }
+
+  var head = document.head || document.getElementsByTagName('head')[0];
+  var style = document.createElement('style');
+  style.type = 'text/css';
+
+  if (insertAt === 'top') {
+    if (head.firstChild) {
+      head.insertBefore(style, head.firstChild);
+    } else {
+      head.appendChild(style);
+    }
+  } else {
+    head.appendChild(style);
+  }
+
+  if (style.styleSheet) {
+    style.styleSheet.cssText = css;
+  } else {
+    style.appendChild(document.createTextNode(css));
+  }
+}
+
+var css = "\n/*# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJzb3VyY2VzIjpbXSwibmFtZXMiOltdLCJtYXBwaW5ncyI6IiIsImZpbGUiOiJhdHRhY2hlci5zY3NzIn0= */";
+styleInject(css);
+
+/**
+ * @class Attacher
+ */
+
+var Attacher =
+/*#__PURE__*/
+function () {
+  /**
+   * Pass arguments to class properties.
+   * @constructor
+   * @arg {Element} reference element.
+   * @arg {Element} target element.
+   * @arg {Boolean} debug mode.
+   * @arg {Float} transition seconds.
+   * @arg {Float} focusIndex
+   * @arg {String} posPriority ("top", "bottom", "center") of target.
+   * @arg {Object} padding of reference to target.
+   * @arg {Object} bPadding padding of boundary.
+   * @arg {Float} watchRefreshSeconds of attacher.
+   */
+  function Attacher(reference, _ref) {
+    var _ref$target = _ref.target,
+        target = _ref$target === void 0 ? null : _ref$target,
+        _ref$autoActivate = _ref.autoActivate,
+        autoActivate = _ref$autoActivate === void 0 ? false : _ref$autoActivate,
+        _ref$debug = _ref.debug,
+        debug = _ref$debug === void 0 ? false : _ref$debug,
+        _ref$styles = _ref.styles;
+    _ref$styles = _ref$styles === void 0 ? {} : _ref$styles;
+    var _ref$styles$transitio = _ref$styles.transition,
+        transition = _ref$styles$transitio === void 0 ? 1 : _ref$styles$transitio,
+        _ref$styles$focusInde = _ref$styles.focusIndex,
+        focusIndex = _ref$styles$focusInde === void 0 ? 10 : _ref$styles$focusInde,
+        _ref$posPriority = _ref.posPriority,
+        posPriority = _ref$posPriority === void 0 ? 'bottom' : _ref$posPriority,
+        _ref$padding = _ref.padding;
+    _ref$padding = _ref$padding === void 0 ? {} : _ref$padding;
+    var _ref$padding$x = _ref$padding.x,
+        paddingX = _ref$padding$x === void 0 ? 10 : _ref$padding$x,
+        _ref$padding$y = _ref$padding.y,
+        paddingY = _ref$padding$y === void 0 ? 20 : _ref$padding$y,
+        _ref$bPadding = _ref.bPadding;
+    _ref$bPadding = _ref$bPadding === void 0 ? {} : _ref$bPadding;
+    var _ref$bPadding$x = _ref$bPadding.x,
+        bPaddingX = _ref$bPadding$x === void 0 ? 25 : _ref$bPadding$x,
+        _ref$bPadding$y = _ref$bPadding.y,
+        bPaddingY = _ref$bPadding$y === void 0 ? 50 : _ref$bPadding$y,
+        _ref$watchRefreshSeco = _ref.watchRefreshSeconds,
+        watchRefreshSeconds = _ref$watchRefreshSeco === void 0 ? .5 : _ref$watchRefreshSeco;
+
+    _classCallCheck(this, Attacher);
+
+    if (debug) console.warn('attacher component created.', this);
+    /**
+     * Set up global properties.
+     */
+
+    this.reference = reference;
+    this.target = target;
+    this.debug = debug;
+    this.autoActivate = autoActivate;
+    this.focusIndex = focusIndex;
+    this.posPriority = posPriority;
+    this.transition = transition;
+    this.paddingX = paddingX;
+    this.paddingY = paddingY;
+    this.bPaddingX = bPaddingX;
+    this.bPaddingY = bPaddingY;
+    this.forcedPosPriority = false;
+    this.watchRefreshSeconds = watchRefreshSeconds;
+    this.windowWidth = window.innerWidth;
+    /**
+     * Bind reference to target if target exists.
+     */
+
+    if (target) this.bind(target);
+    this.watchBlurEvents();
+  }
+  /**
+   * Binds reference element to target element.
+   * @arg {Element} target could be a new target element.
+   */
+
+
+  _createClass(Attacher, [{
+    key: "bind",
+    value: function bind(target) {
+      var _this = this;
+
+      this.target = target;
+      this.setStyles();
+
+      if (this.autoActivate) {
+        setTimeout(function () {
+          _this.activate();
+        }, 100);
+      }
+
+      if (this.debug) console.log("Attacher bind method fired.");
+    }
+    /**
+     * Unbinds reference element from target element.
+     */
+
+  }, {
+    key: "unbind",
+    value: function unbind() {
+      if (this.debug) console.log("Attacher unbind method fired.");
+      this.resetStyles();
+      this.target = undefined;
+      this.deactivate();
+    }
+    /**
+     * Make reference visible. Start watching.
+     */
+
+  }, {
+    key: "activate",
+    value: function activate() {
+      var _this2 = this;
+
+      this.switchFocus();
+      this.refresh();
+      setTimeout(function () {
+        _this2.setTransitionStyle();
+      }, 100);
+      this.startWatch();
+    }
+    /**
+     * Make reference invisible. Stop watching.
+     */
+
+  }, {
+    key: "deactivate",
+    value: function deactivate() {
+      this.reference.style.transition = '';
+      this.reference.style.left = '';
+      this.stopWatch();
+    }
+    /**
+     * Switch focus function
+     */
+
+  }, {
+    key: "switchFocus",
+    value: function switchFocus() {
+      document.dispatchEvent(new CustomEvent('blurAttacher'));
+      this.reference.style.zIndex = this.focusIndex;
+    }
+    /**
+     * Set up reference element's styles.
+     */
+
+  }, {
+    key: "setStyles",
+    value: function setStyles() {
+      this.reference.style.position = 'absolute';
+      this.reference.style.zIndex = 1;
+    }
+    /**
+     * Clear reference element's styles.
+     */
+
+  }, {
+    key: "resetStyles",
+    value: function resetStyles() {
+      this.reference.style.position = '';
+      this.reference.style.zIndex = '';
+      this.reference.style.transition = '';
+      this.reference.style.left = '';
+      this.reference.style.top = '';
+    }
+    /**
+     * Set reference and content's default transition
+     * @arg {Element} reference
+     * @arg {Float} transition
+     */
+
+  }, {
+    key: "setTransitionStyle",
+    value: function setTransitionStyle() {
+      var reference = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.reference;
+      var transition = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this.transition;
+      reference.style.transition = "".concat(transition, "s");
+    }
+    /**
+     * Unset reference and content's default transition
+     * @arg {Element} reference
+     * @arg {Element} content
+     */
+
+  }, {
+    key: "unsetTransitionStyle",
+    value: function unsetTransitionStyle() {
+      var reference = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : this.reference;
+      var content = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this.content;
+      reference.style.transition = '';
+    }
+    /**
+     * Refresh position of reference element.
+     * It is the function to reposition reference element.
+     */
+
+  }, {
+    key: "refresh",
+    value: function refresh() {
+      if (this.target == undefined) {
+        if (this.debug) {
+          console.warn("Attacher can't refresh. Target is undefined.");
+        }
+
+        return;
+      }
+
+      this.setPosition(this.getPosition());
+    }
+    /**
+     * Decide new position according to window size and priority.
+     * @return {Object} new position of target element.
+     */
+
+  }, {
+    key: "getPosition",
+    value: function getPosition() {
+      var coords = this.target.getBoundingClientRect();
+      var positionX = this.offsetPositionX(coords.left + window.scrollX);
+      var positionY = this.offsetPositionY(coords.top + window.scrollY);
+      this.targetPosY = positionY;
+      return {
+        left: positionX,
+        top: positionY
+      };
+    }
+    /**
+     * Set position of reference element.
+     * @arg {Object} position of reference element.
+     */
+
+  }, {
+    key: "setPosition",
+    value: function setPosition(position) {
+      this.reference.style.left = "".concat(position.left, "px");
+      this.reference.style.top = "".concat(position.top, "px");
+      this.reference.style.transform = '';
+    }
+    /**
+     * check if X axis is out of border.
+     * @arg {FLoat} position of target in x-axis.
+     * @return {Float} X distance between reference and target.
+     */
+
+  }, {
+    key: "offsetPositionX",
+    value: function offsetPositionX(position) {
+      var newPosition = position - this.reference.offsetWidth / 2 + this.target.offsetWidth / 2;
+      /**
+       * Check if reference is out-of-bounds.
+       */
+
+      var bodyWidth = window.innerWidth;
+
+      if (newPosition + this.reference.offsetWidth + this.paddingX > bodyWidth) {
+        if (this.debug) console.log('Reference bleeds from right.');
+        return bodyWidth - this.reference.offsetWidth - this.paddingX;
+      }
+
+      if (newPosition - this.paddingX < 0) {
+        if (this.debug) console.log('Reference bleeds from left.');
+        return 0 + this.paddingX;
+      }
+
+      return newPosition;
+    }
+    /**
+     * Calculate Y distance first.
+     * Check if Y distance is out of boundary.
+     * If out of boundary. Recalculate Y distance.
+     * @arg {Float} position of target in y-axis.
+     * @return {Float} Y distance between reference and target.
+     */
+
+  }, {
+    key: "offsetPositionY",
+    value: function offsetPositionY(position) {
+      var newPosition = this.repositionPivotY(position);
+
+      switch (this.checkBleedingY(newPosition)) {
+        case 'top':
+          newPosition = this.repositionPivotY(position, 'bottom');
+          break;
+
+        case 'bottom':
+          newPosition = this.repositionPivotY(position, 'top');
+          break;
+      }
+
+      return newPosition;
+    }
+    /**
+    * Calculate position priority of reference element.
+    * @arg {Float} position of target in y-axis.
+    * @arg {String} posPriority position priority.
+    * @return {Float} Y distance between reference and target.
+     */
+
+  }, {
+    key: "repositionPivotY",
+    value: function repositionPivotY(position) {
+      var posPriority = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : this.posPriority;
+      var newPosition = 0;
+
+      switch (posPriority) {
+        case 'center':
+          newPosition = position;
+          break;
+
+        case 'top':
+          newPosition = position - this.reference.offsetHeight - this.paddingY;
+          break;
+
+        case 'bottom':
+          newPosition = position + this.target.offsetHeight + this.paddingY;
+          break;
+      }
+
+      return newPosition;
+    }
+    /**
+     * Check if target position is out-of-bounds in y-axis.
+     * @arg {Float} position of target in y-axis.
+     * @return {Boolean | String} the bleeding position of reference.
+     * false for no bleeding.
+     */
+
+  }, {
+    key: "checkBleedingY",
+    value: function checkBleedingY(position) {
+      var topBoundary = window.scrollY;
+      var refTopBoundary = position - this.bPaddingY;
+
+      if (topBoundary >= refTopBoundary) {
+        if (this.debug) console.log('Reference bleeds from top.');
+        this.forcedPosPriority = 'bottom';
+        return 'top';
+      }
+
+      var bottomBoundary = topBoundary + window.innerHeight;
+      var refBottomBoundary = position + this.reference.offsetHeight + this.bPaddingY;
+
+      if (refBottomBoundary > bottomBoundary) {
+        if (this.debug) console.log('Reference bleeds from bottom.');
+        this.forcedPosPriority = 'top';
+        return 'bottom';
+      }
+
+      this.forcedPosPriority = false;
+      return false;
+    }
+    /**
+     * Watch Global Events
+     */
+
+  }, {
+    key: "watchBlurEvents",
+    value: function watchBlurEvents() {
+      var _this3 = this;
+
+      document.addEventListener('blurAttacher', this.blurAttacher = function () {
+        _this3.reference.style.zIndex = 1;
+        if (_this3.debug) console.log('blurAttacher event fired.');
+      });
+    }
+    /**
+     * Listen document scroll change.
+     */
+
+  }, {
+    key: "startWatch",
+    value: function startWatch() {
+      var _this4 = this;
+
+      /**
+       * Check if event listeners assigned.
+       */
+      if (this.eventListenersCreated) return;
+      /**
+       * Refresh reference element when the user scrolls the page.
+       */
+
+      document.addEventListener('scroll', this.scrollWatcher = function () {
+        if (!_this4.sleepMode) _this4.autoRefresh();
+
+        _this4.switchToSleepMode();
+      }, {
+        passive: true
+      });
+      /**
+       * Refresh when window object resized by the user.
+       */
+
+      window.addEventListener('resize', this.resizeWatcher = function () {
+        if (_this4.windowWidth == window.innerWidth) return;
+        if (_this4.debug) console.warn('Document resized.');
+        _this4.reference.style.display = 'none';
+
+        _this4.resetStyles();
+
+        setTimeout(function () {
+          _this4.reference.style.display = '';
+
+          _this4.setStyles();
+
+          _this4.refresh();
+        }, 100);
+        setTimeout(function () {
+          _this4.setTransitionStyle();
+        }, 200);
+        _this4.windowWidth = window.innerWidth;
+        if (_this4.debug) console.warn('new screen width set to default');
+      });
+      this.eventListenersCreated = true;
+      if (this.debug) console.warn('attacher started watching.');
+    }
+    /**
+     * Stop listening scroll and resize events.
+     */
+
+  }, {
+    key: "stopWatch",
+    value: function stopWatch() {
+      document.removeEventListener('scroll', this.scrollWatcher);
+      window.removeEventListener('resize', this.resizeWatcher);
+      this.eventListenersCreated = false;
+      if (this.debug) console.warn('attacher stopped watching.');
+    }
+    /**
+     * Auto refreshes attacher on scroll event.
+     */
+
+  }, {
+    key: "autoRefresh",
+    value: function autoRefresh() {
+      var _this5 = this;
+
+      if (this.checkBleedingTimer) return;
+
+      if (this.forcedPosPriority == this.checkBleedingY(this.targetPosY)) {
+        return;
+      }
+      if (this.debug) console.log('Refresh requested.');
+      setTimeout(function () {
+        _this5.checkBleedingTimer = false;
+
+        _this5.refresh();
+
+        if (_this5.debug) console.log('Refreshed.');
+      }, this.watchRefreshSeconds * 1000);
+      this.checkBleedingTimer = true;
+    }
+    /**
+     * Whether to switch sleep mode for watch.
+     */
+
+  }, {
+    key: "switchToSleepMode",
+    value: function switchToSleepMode() {
+      if (window.scrollY > this.reference.offsetTop + this.reference.offsetHeight || this.reference.offsetTop > window.scrollY + window.innerHeight) {
+        if (this.debug && this.sleepMode == false) {
+          console.warn('attacher switched to sleep mode.');
+        }
+
+        this.sleepMode = true;
+        return;
+      }
+
+      if (this.debug && this.sleepMode == true) {
+        console.warn('attacher switched off sleep mode.');
+      }
+
+      this.sleepMode = false;
+    }
+  }]);
+
+  return Attacher;
+}();
+
+export default Attacher;
+//# sourceMappingURL=attacher.js.map

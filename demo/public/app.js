@@ -33,8 +33,9 @@ function () {
    * @arg {Element} reference element.
    * @arg {Element} target element.
    * @arg {Boolean} debug mode.
-   * @arg {String} posPriority ("top", "bottom", "center") of target.
    * @arg {Float} transition seconds.
+   * @arg {Float} focusIndex
+   * @arg {String} posPriority ("top", "bottom", "center") of target.
    * @arg {Object} padding of reference to target.
    * @arg {Object} bPadding padding of boundary.
    * @arg {Float} watchRefreshSeconds of attacher.
@@ -42,12 +43,16 @@ function () {
   function Attacher(reference, _ref) {
     var _ref$target = _ref.target,
         target = _ref$target === void 0 ? null : _ref$target,
+        _ref$autoActivate = _ref.autoActivate,
+        autoActivate = _ref$autoActivate === void 0 ? false : _ref$autoActivate,
         _ref$debug = _ref.debug,
         debug = _ref$debug === void 0 ? false : _ref$debug,
         _ref$styles = _ref.styles;
     _ref$styles = _ref$styles === void 0 ? {} : _ref$styles;
     var _ref$styles$transitio = _ref$styles.transition,
         transition = _ref$styles$transitio === void 0 ? 1 : _ref$styles$transitio,
+        _ref$styles$focusInde = _ref$styles.focusIndex,
+        focusIndex = _ref$styles$focusInde === void 0 ? 10 : _ref$styles$focusInde,
         _ref$posPriority = _ref.posPriority,
         posPriority = _ref$posPriority === void 0 ? 'bottom' : _ref$posPriority,
         _ref$padding = _ref.padding;
@@ -75,6 +80,8 @@ function () {
     this.reference = reference;
     this.target = target;
     this.debug = debug;
+    this.autoActivate = autoActivate;
+    this.focusIndex = focusIndex;
     this.posPriority = posPriority;
     this.transition = transition;
     this.paddingX = paddingX;
@@ -84,6 +91,7 @@ function () {
     this.forcedPosPriority = false;
     this.watchRefreshSeconds = watchRefreshSeconds;
     this.windowWidth = window.innerWidth;
+    this.autoRefreshTimer = undefined;
     /**
      * Bind reference to target if target exists.
      */
@@ -103,9 +111,13 @@ function () {
 
       this.target = target;
       this.setStyles();
-      setTimeout(function () {
-        _this.activate();
-      }, 100);
+
+      if (this.autoActivate) {
+        setTimeout(function () {
+          _this.activate();
+        }, 100);
+      }
+
       if (this.debug) console.log("Attacher bind method fired.");
     }
     /**
@@ -155,7 +167,7 @@ function () {
     key: "switchFocus",
     value: function switchFocus() {
       document.dispatchEvent(new CustomEvent('blurAttacher'));
-      this.reference.style.zIndex = 1000;
+      this.reference.style.zIndex = this.focusIndex;
     }
     /**
      * Set up reference element's styles.
@@ -412,7 +424,7 @@ function () {
           _this3.setTransitionStyle();
         }, 200);
         _this3.windowWidth = window.innerWidth;
-        if (_this3.debug) console.log('new screen width set to default');
+        if (_this3.debug) console.warn('new screen width set to default');
       });
       document.addEventListener('blurAttacher', this.blurAttacher = function () {
         _this3.reference.style.zIndex = 1;
@@ -431,6 +443,7 @@ function () {
       document.removeEventListener('scroll', this.scrollWatcher);
       window.removeEventListener('resize', this.resizeWatcher);
       document.removeEventListener('blurAttacher', this.blurAttacher);
+      clearTimeout(this.autoRefreshTimer);
       this.eventListenersCreated = false;
       if (this.debug) console.warn('attacher stopped watching.');
     }
@@ -449,7 +462,7 @@ function () {
         return;
       }
       if (this.debug) console.log('Refresh requested.');
-      setTimeout(function () {
+      this.autoRefreshTimer = setTimeout(function () {
         _this4.checkBleedingTimer = false;
 
         _this4.refresh();
@@ -470,6 +483,7 @@ function () {
           console.warn('attacher switched to sleep mode.');
         }
 
+        clearTimeout(this.autoRefreshTimer);
         this.sleepMode = true;
         return;
       }
@@ -503,7 +517,11 @@ var attacher = new Attacher(reference, {
   touchSurface: referenceSurface,
   target: targets[0],
   posPriority: 'top',
-  debug: true
+  debug: true,
+  autoActivate: true,
+  styles: {
+    focusIndex: 10
+  }
 });
 /**
  * Create static attacher example.
