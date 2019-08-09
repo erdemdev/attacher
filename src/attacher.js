@@ -77,9 +77,10 @@ export default class Attacher {
 
     if (this.autoActivate) {
       setTimeout(() => {
-        this.activate();
+        this.activate(true);
       }, 100);
     }
+
 
     if (this.debug) console.log(`Attacher bind method fired.`);
   }
@@ -89,20 +90,27 @@ export default class Attacher {
    */
   unbind() {
     if (this.debug) console.log(`Attacher unbind method fired.`);
+
     this.resetStyles();
     this.target = undefined;
+
     this.deactivate();
   }
 
   /**
    * Make reference visible. Start watching.
+   * @arg {Boolean} transition
    */
-  activate() {
+  activate(transition = false) {
     this.switchFocus();
     this.refresh();
-    setTimeout(() => {
-      this.setTransitionStyle();
-    }, 100);
+
+    if (transition) {
+      setTimeout(() => {
+        this.setTransitionStyle();
+      }, 100);
+    }
+
     this.startWatch();
   }
 
@@ -112,6 +120,7 @@ export default class Attacher {
   deactivate() {
     this.reference.style.transition = '';
     this.reference.style.left = '';
+
     this.stopWatch();
   }
 
